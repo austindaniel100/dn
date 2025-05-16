@@ -199,7 +199,7 @@ with st.sidebar:
     default_api_key = os.getenv("GOOGLE_API_KEY", "")
     api_key_input = st.text_input("Google AI Key", type="password", value=default_api_key, help="Get your key from Google AI Studio.")
     if not api_key_input and default_api_key: api_key_input = default_api_key
-    available_models = ["gemini-1.5-flash-latest", "gemini-1.5-pro-latest", "gemini-1.0-pro"]
+    available_models = ["gemini-2.5-flash-preview-04-17", "gemini-1.5-flash-latest", "gemini-1.5-pro-latest", "gemini-1.0-pro"]
     default_model_index = available_models.index("gemini-1.5-flash-latest") if "gemini-1.5-flash-latest" in available_models else 0
     selected_model = st.selectbox("Choose Gemini Model", available_models, index=default_model_index, help="Select model. Flash is faster, Pro is more capable.")
     st.markdown("---")
