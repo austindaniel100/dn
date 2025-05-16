@@ -21,8 +21,7 @@ def map_prep_time_value_to_description(value):
     if value == 4: return "Involved preparation (2-4 hours), some planning."
     return "Elaborate preparation (4+ hours), significant planning."
 
-# MODIFIED FUNCTION SIGNATURE to include model_name
-def generate_date_plan_with_gemini(api_key, selected_model_name, # ADDED selected_model_name
+def generate_date_plan_with_gemini(api_key, selected_model_name,
                                    theme, activity_type,
                                    budget_desc, prep_time_desc, user_input,
                                    current_budget_value, current_prep_time_value):
@@ -32,12 +31,15 @@ def generate_date_plan_with_gemini(api_key, selected_model_name, # ADDED selecte
         return "Please select a Gemini model in the sidebar."
     try:
         genai.configure(api_key=api_key)
-        # Use the user-selected model name
         model = genai.GenerativeModel(model_name=selected_model_name)
 
+        # REFINED PROMPT FOR CONCISENESS
         prompt = f"""
         You are a creative and helpful date night planning assistant.
-        Your goal is to generate a fun and suitable date night plan based on the user's preferences.
+        Your goal is to generate a VERY CONCISE yet complete date night plan based on the user's preferences.
+        Aim for a plan that is easy to read quickly and fits in a small space.
+        Prioritize brevity while ensuring all essential information is present.
+        Use bullet points or short numbered lists where appropriate.
         The user is utilizing the '{selected_model_name}' model.
 
         User Preferences:
@@ -47,32 +49,25 @@ def generate_date_plan_with_gemini(api_key, selected_model_name, # ADDED selecte
         - Time to Prepare Consideration: "{prep_time_desc}" (Approx. level: {current_prep_time_value}/5)
         - User's specific suggestions or restrictions: "{user_input if user_input else 'None'}"
 
-        Please generate a date night plan.
-        The plan should be creative, fitting the theme and activity type.
-        Consider the budget and preparation time descriptions provided.
-        If the user provided specific suggestions or restrictions, make sure to incorporate or respect them.
+        Please generate the date night plan. Output in the following Markdown format.
+        BE AS CONCISE AS POSSIBLE.
 
-        Output the plan in the following Markdown format:
+        ## [Catchy & Short Date Title]
 
-        ## [Catchy Date Night Title]
         **Theme:** {theme}
         **Activity Type:** {activity_type}
-        **Budget Guide:** Approx. {current_budget_value}/5 ({budget_desc})
-        **Prep Time Guide:** Approx. {current_prep_time_value}/5 ({prep_time_desc})
-        *(Generated using {selected_model_name})*
+        **Budget:** ~{current_budget_value}/5 | **Prep:** ~{current_prep_time_value}/5
+        *(Using {selected_model_name})*
 
         ### 🎉 The Plan:
-        1.  **Activity/Step 1:** [Detailed description of the first activity or preparation step]
-        2.  **Activity/Step 2:** [Detailed description of the second activity or step]
-        3.  **(Optional) Food/Drinks:** [Suggestions for food and drinks that match the theme and budget]
-        4.  **(Optional) Ambiance/Extras:** [Ideas for music, decorations, or other touches to enhance the experience]
+        1.  **Main Activity:** [Brief description, 1-2 short sentences]
+        2.  **(Optional) Next Step/Food:** [Brief suggestion, 1 short sentence]
 
-        ### 💡 Tips & Considerations:
-        *   [A tip related to the plan, or how to adapt it]
-        *   [Another tip or consideration, especially if user restrictions were mentioned]
+        ### 💡 Quick Tips:
+        *   [One very brief tip or consideration]
 
-        Make the plan sound engaging and fun!
-        Keep the overall response concise enough to be easily readable.
+        Keep all descriptions extremely brief. If an optional section isn't highly relevant, omit it.
+        Focus on the core idea.
         """
         response = model.generate_content(prompt)
         if hasattr(response, 'text'):
@@ -83,16 +78,21 @@ def generate_date_plan_with_gemini(api_key, selected_model_name, # ADDED selecte
             return str(response)
 
     except Exception as e:
-        return f"An error occurred while generating the plan with {selected_model_name}: {e}"
+        # If the error is about quota, provide a more specific message
+        if "quota" in str(e).lower():
+            return (f"Rate limit or quota exceeded for {selected_model_name}. "
+                    "Please wait a bit, try a different model, or check your Google AI/Cloud billing. "
+                    f"Details: {str(e)[:200]}...") # Show only part of a long error
+        return f"An error occurred with {selected_model_name}: {str(e)[:300]}..."
+
 
 # --- Streamlit App UI ---
-st.set_page_config(page_title="Date Night Planner", layout="wide", initial_sidebar_state="expanded") # Keep sidebar open
+st.set_page_config(page_title="Date Night Planner", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
         .main .block-container {
-            padding-top: 1rem;
-            padding-bottom: 1rem;
+            padding-top: 1rem; padding-bottom: 1rem;
         }
         [data-testid="stVerticalBlock"] {
             gap: 0.25rem !important;
@@ -100,67 +100,63 @@ st.markdown("""
         div[data-testid="stSelectbox"] > label,
         div[data-testid="stSlider"] > label,
         div[data-testid="stTextArea"] > label {
-            margin-bottom: 0.1rem !important;
-            font-size: 0.875rem;
+            margin-bottom: 0.1rem !important; font-size: 0.875rem;
         }
-        h1 {
-            font-size: 1.6rem !important;
-            margin-bottom: 0.5rem !important;
+        h1 { /* Main Title */
+            font-size: 1.6rem !important; margin-bottom: 0.5rem !important;
         }
-        h3 {
-            font-size: 1.1rem !important;
-            margin-top: 0rem !important;
-            margin-bottom: 0.25rem !important;
+        h3 { /* st.subheader for right column title */
+            font-size: 1.1rem !important; margin-top: 0rem !important; margin-bottom: 0.25rem !important;
         }
-        html, body, #root {
-            height: 100%;
-            overflow: hidden;
+        html, body, #root, .stApp {
+            height: 100%; overflow: hidden; /* Critical for no page scroll */
         }
-        .stApp {
-             height: 100vh;
-             overflow: hidden;
+
+        /* Style for the output plan box */
+        .plan-output-box {
+            height: calc(100vh - 110px); /* Adjust 110px as needed */
+            overflow-y: auto; /* Scroll INSIDE the box if content overflows */
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            font-size: 0.8rem; /* Smaller font size for the plan text (approx 20% smaller than 1rem default) */
+                               /* You can try 0.7rem for ~30% smaller, but it might be hard to read */
         }
-        /* Sidebar selectbox label */
-        div[data-testid="stSidebar"] div[data-testid="stSelectbox"] > label {
-             font-size: 0.875rem !important; /* Make sidebar label same as main page */
-             margin-bottom: 0.1rem !important;
+        .plan-output-box p, .plan-output-box li, .plan-output-box h2, .plan-output-box h3 {
+            font-size: inherit !important; /* Ensure child elements inherit this smaller font */
+            line-height: 1.3; /* Adjust line height for smaller font */
+            margin-bottom: 0.3rem; /* Reduce space between paragraphs/list items */
+        }
+        .plan-output-box h2 { /* Markdown ## */
+            font-size: 1.1em !important; /* Relative to parent's 0.8rem */
+            margin-top: 0.5rem; margin-bottom: 0.25rem;
+        }
+        .plan-output-box h3 { /* Markdown ### */
+            font-size: 1.0em !important;  /* Relative to parent's 0.8rem */
+            margin-top: 0.4rem; margin-bottom: 0.2rem;
         }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("💖 Date Night Planner AI 🥂")
 
-# --- Sidebar for API Key & Model Selection ---
 st.sidebar.header("🔑 API & Model Config")
 default_api_key = os.getenv("GOOGLE_API_KEY", "")
 api_key_input = st.sidebar.text_input(
-    "Google AI Key",
-    type="password",
-    value=default_api_key,
-    help="Get your key from Google AI Studio."
+    "Google AI Key", type="password", value=default_api_key, help="Get your key from Google AI Studio."
 )
 if not api_key_input and default_api_key: api_key_input = default_api_key
 
-# List of common Gemini models
-# You can find more models here: https://ai.google.dev/models/gemini
-# Some models might have different capabilities or pricing.
-# "gemini-pro" is an alias for a stable 1.0 pro version.
 available_models = [
-    "gemini-2.5-flash-preview-04-17",
-    "gemini-1.5-flash-latest", # Good balance of speed and capability
-    "gemini-1.5-pro-latest",   # Most capable, potentially slower/more expensive
-    "gemini-1.0-pro",          # Older but stable Pro model
-         # If you were doing image tasks (not for this app)
+    "gemini-1.5-flash-latest", "gemini-1.5-pro-latest", "gemini-1.0-pro",
 ]
 selected_model = st.sidebar.selectbox(
-    "Choose Gemini Model",
-    available_models,
-    index=0, # Default to the first one (gemini-1.5-flash-latest)
-    help="Select the AI model to generate ideas. Newer models might be more creative but could have different free tier limits."
+    "Choose Gemini Model", available_models, index=0,
+    help="Select AI model. Newer models may be more creative but have different free tier limits."
 )
-st.sidebar.markdown("---") # Separator
+st.sidebar.markdown("---")
 
-# --- Main Layout: Two Columns ---
 left_column, right_column = st.columns([0.4, 0.6])
 
 with left_column:
@@ -183,10 +179,7 @@ with left_column:
 
     st.markdown("**Your Specifics**")
     user_custom_input = st.text_area(
-        "Restrictions/Ideas?",
-        height=70,
-        placeholder="e.g., Italian food, no cats.",
-        help="Any must-haves or must-nots."
+        "Restrictions/Ideas?", height=70, placeholder="e.g., Italian food, no cats.", help="Any must-haves or must-nots."
     )
 
     if 'generated_plan_content' not in st.session_state:
@@ -201,15 +194,9 @@ with left_column:
             with right_column:
                  with st.spinner("💖 Planning..."):
                     plan_output = generate_date_plan_with_gemini(
-                        api_key_input,
-                        selected_model, # Pass the chosen model
-                        selected_theme,
-                        selected_activity_type,
-                        selected_budget_description,
-                        selected_prep_time_description,
-                        user_custom_input,
-                        current_budget_val,
-                        current_prep_time_val
+                        api_key_input, selected_model, selected_theme, selected_activity_type,
+                        selected_budget_description, selected_prep_time_description, user_custom_input,
+                        current_budget_val, current_prep_time_val
                     )
             st.session_state.generated_plan_content = plan_output
 
@@ -220,20 +207,7 @@ with right_column:
     if not isinstance(plan_display_content, str):
         plan_display_content = str(plan_display_content)
 
-    st.markdown(
-        f"""
-        <div style="
-            height: calc(100vh - 110px); /* Adjust 110px based on title, subheader height */
-            overflow-y: auto;
-            padding: 10px;
-            border: 1px solid #e0e0e0;
-            border-radius: 5px;
-            background-color: #f9f9f9;
-        ">
-            {plan_display_content}
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    # Using a div with a class for styling the output box
+    st.markdown(f"""<div class="plan-output-box">{plan_display_content}</div>""", unsafe_allow_html=True)
 
 st.sidebar.info("Adjust API key & model if needed.")
