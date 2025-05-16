@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 # --- Configuration & Setup ---
 load_dotenv()
 
-# --- Helper Functions (keep these as they are) ---
+# --- Helper Functions ---
 def map_budget_value_to_description(value):
     if value == 1: return "Extremely tight, focus on free or DIY options, minimal to no spending."
     if value == 2: return "Very low budget, some minimal spending is acceptable."
@@ -21,21 +21,24 @@ def map_prep_time_value_to_description(value):
     if value == 4: return "Involved preparation (2-4 hours), some planning."
     return "Elaborate preparation (4+ hours), significant planning."
 
-# MODIFIED FUNCTION SIGNATURE
-def generate_date_plan_with_gemini(api_key, theme, activity_type,
+# MODIFIED FUNCTION SIGNATURE to include model_name
+def generate_date_plan_with_gemini(api_key, selected_model_name, # ADDED selected_model_name
+                                   theme, activity_type,
                                    budget_desc, prep_time_desc, user_input,
-                                   current_budget_value, current_prep_time_value): # ADDED PARAMS
+                                   current_budget_value, current_prep_time_value):
     if not api_key:
         return "Google API Key is missing. Please enter it in the sidebar."
+    if not selected_model_name:
+        return "Please select a Gemini model in the sidebar."
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(model_name="gemini-1.5-flash-latest")
+        # Use the user-selected model name
+        model = genai.GenerativeModel(model_name=selected_model_name)
 
-        # REMOVED global statement
-        # The prompt now uses the passed-in current_budget_value and current_prep_time_value
         prompt = f"""
         You are a creative and helpful date night planning assistant.
         Your goal is to generate a fun and suitable date night plan based on the user's preferences.
+        The user is utilizing the '{selected_model_name}' model.
 
         User Preferences:
         - Theme: {theme}
@@ -56,6 +59,7 @@ def generate_date_plan_with_gemini(api_key, theme, activity_type,
         **Activity Type:** {activity_type}
         **Budget Guide:** Approx. {current_budget_value}/5 ({budget_desc})
         **Prep Time Guide:** Approx. {current_prep_time_value}/5 ({prep_time_desc})
+        *(Generated using {selected_model_name})*
 
         ### 🎉 The Plan:
         1.  **Activity/Step 1:** [Detailed description of the first activity or preparation step]
@@ -79,10 +83,10 @@ def generate_date_plan_with_gemini(api_key, theme, activity_type,
             return str(response)
 
     except Exception as e:
-        return f"An error occurred while generating the plan: {e}"
+        return f"An error occurred while generating the plan with {selected_model_name}: {e}"
 
 # --- Streamlit App UI ---
-st.set_page_config(page_title="Date Night Planner", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Date Night Planner", layout="wide", initial_sidebar_state="expanded") # Keep sidebar open
 
 st.markdown("""
     <style>
@@ -103,7 +107,7 @@ st.markdown("""
             font-size: 1.6rem !important;
             margin-bottom: 0.5rem !important;
         }
-        h3 { /* st.subheader in right column */
+        h3 {
             font-size: 1.1rem !important;
             margin-top: 0rem !important;
             margin-bottom: 0.25rem !important;
@@ -116,12 +120,18 @@ st.markdown("""
              height: 100vh;
              overflow: hidden;
         }
+        /* Sidebar selectbox label */
+        div[data-testid="stSidebar"] div[data-testid="stSelectbox"] > label {
+             font-size: 0.875rem !important; /* Make sidebar label same as main page */
+             margin-bottom: 0.1rem !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("💖 Date Night Planner AI 🥂")
 
-st.sidebar.header("🔑 API Config")
+# --- Sidebar for API Key & Model Selection ---
+st.sidebar.header("🔑 API & Model Config")
 default_api_key = os.getenv("GOOGLE_API_KEY", "")
 api_key_input = st.sidebar.text_input(
     "Google AI Key",
@@ -131,11 +141,29 @@ api_key_input = st.sidebar.text_input(
 )
 if not api_key_input and default_api_key: api_key_input = default_api_key
 
+# List of common Gemini models
+# You can find more models here: https://ai.google.dev/models/gemini
+# Some models might have different capabilities or pricing.
+# "gemini-pro" is an alias for a stable 1.0 pro version.
+available_models = [
+    "gemini-2.5-flash-preview-04-17",
+    "gemini-1.5-flash-latest", # Good balance of speed and capability
+    "gemini-1.5-pro-latest",   # Most capable, potentially slower/more expensive
+    "gemini-1.0-pro",          # Older but stable Pro model
+         # If you were doing image tasks (not for this app)
+]
+selected_model = st.sidebar.selectbox(
+    "Choose Gemini Model",
+    available_models,
+    index=0, # Default to the first one (gemini-1.5-flash-latest)
+    help="Select the AI model to generate ideas. Newer models might be more creative but could have different free tier limits."
+)
+st.sidebar.markdown("---") # Separator
+
+# --- Main Layout: Two Columns ---
 left_column, right_column = st.columns([0.4, 0.6])
 
 with left_column:
-    # REMOVED global budget_value, prep_time_value
-
     st.markdown("**Preferences**")
     themes = ["Romantic ❤️", "Fun 🎉", "Chill 🧘", "Adventure 🚀", "Artsy 🎨", "Homebody 🏡"]
     selected_theme = st.selectbox("Theme", themes, help="Mood of the date.")
@@ -146,13 +174,9 @@ with left_column:
     st.markdown("**Practicalities**")
     col_budget, col_prep = st.columns(2)
     with col_budget:
-        budget_value_slider = st.slider("Budget", 1, 5, 2, format="%d/5", help="1 (tight) - 5 (splurge)", key="budget_slider_key") # Renamed to avoid conflict
+        current_budget_val = st.slider("Budget", 1, 5, 2, format="%d/5", help="1 (tight) - 5 (splurge)")
     with col_prep:
-        prep_time_value_slider = st.slider("Prep Time", 1, 5, 2, format="%d/5", help="1 (quick) - 5 (elaborate)", key="prep_time_slider_key") # Renamed
-
-    # These are the values we'll pass to the function and use for descriptions
-    current_budget_val = budget_value_slider
-    current_prep_time_val = prep_time_value_slider
+        current_prep_time_val = st.slider("Prep Time", 1, 5, 2, format="%d/5", help="1 (quick) - 5 (elaborate)")
 
     selected_budget_description = map_budget_value_to_description(current_budget_val)
     selected_prep_time_description = map_prep_time_value_to_description(current_prep_time_val)
@@ -171,18 +195,21 @@ with left_column:
     if st.button("✨ Generate Plan ✨", type="primary", use_container_width=True):
         if not api_key_input:
             st.session_state.generated_plan_content = "⚠️ Please enter your Google API Key in the sidebar!"
+        elif not selected_model:
+            st.session_state.generated_plan_content = "⚠️ Please select a Gemini model in the sidebar!"
         else:
             with right_column:
                  with st.spinner("💖 Planning..."):
-                    plan_output = generate_date_plan_with_gemini( # MODIFIED FUNCTION CALL
+                    plan_output = generate_date_plan_with_gemini(
                         api_key_input,
+                        selected_model, # Pass the chosen model
                         selected_theme,
                         selected_activity_type,
                         selected_budget_description,
                         selected_prep_time_description,
                         user_custom_input,
-                        current_budget_val,      # PASSING THE VALUE
-                        current_prep_time_val    # PASSING THE VALUE
+                        current_budget_val,
+                        current_prep_time_val
                     )
             st.session_state.generated_plan_content = plan_output
 
@@ -208,3 +235,5 @@ with right_column:
         """,
         unsafe_allow_html=True
     )
+
+st.sidebar.info("Adjust API key & model if needed.")
