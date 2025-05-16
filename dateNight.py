@@ -144,9 +144,11 @@ api_key_input = st.sidebar.text_input(
 if not api_key_input and default_api_key: api_key_input = default_api_key
 
 available_models = [
+    "gemini-2.5-flash-preview-04-17",
     "gemini-1.5-flash-latest", # Good balance of speed and capability
-    "gemini-1.5-pro-latest",   # Most capable
+    "gemini-1.5-pro-latest",   # Most capable, potentially slower/more expensive
     "gemini-1.0-pro",          # Older but stable Pro model
+         # If you were doing image tasks (not for this app)
 ]
 # Attempt to find a good default, otherwise use the first
 default_model_index = 0
