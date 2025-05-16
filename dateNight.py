@@ -142,9 +142,10 @@ st.markdown("""
         }
         /* Subheader for the right column "Your Date Night Idea" */
         .right-column-subheader {
-            font-size: 1.5rem !important; /* Larger */
+            font-size: 1.5rem !important;
             font-weight: 600;
             color: #A9D5FF; /* Light blue accent */
+            margin-top: 0 !important; /* <<< ADD THIS LINE TO RESET TOP MARGIN */
             margin-bottom: 0.75rem !important;
             text-align: center;
         }
