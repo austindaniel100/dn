@@ -244,14 +244,13 @@ with left_column:
 
     # --- START TROUBLESHOOTING HERE ---
     try:
-        user_custom_input = st.text_area(
-            label="Restrictions/Ideas?", # Original label
-            value="", # Explicitly set default, though usually not needed for ""
-            height=60,
-            placeholder="e.g., Italian food, no cats, one person is vegan.",
-            help="Any must-haves or must-nots.",
-            key="user_custom_input_area_v1" # Added a unique key
-        )
+            user_custom_input = st.text_area(
+        label="Restrictions/Ideas?",
+        height=70, # Or 68, or any value >= 68. Let's use 70 for a bit of buffer.
+        placeholder="e.g., Italian food, no cats, one person is vegan.",
+        help="Any must-haves or must-nots.",
+        key="user_custom_input_area_v1" # Keep the key
+    )
     except Exception as e:
         st.error(f"Error creating text_area: {e}") # Try to catch and display the error directly
         user_custom_input = "" # Provide a fallback value
