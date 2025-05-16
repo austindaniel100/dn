@@ -241,15 +241,27 @@ with left_column:
     selected_prep_time_description = map_prep_time_value_to_description(current_prep_time_val)
 
     st.markdown("<p class='left-column-section-title'>Your Specifics</p>", unsafe_allow_html=True)
-    user_custom_input = st.text_area(
-        "Restrictions/Ideas?",
-        height=60, # Reduced height
-        placeholder="e.g., Italian food, no cats, one person is vegan.",
-        help="Any must-haves or must-nots."
-    )
+
+    # --- START TROUBLESHOOTING HERE ---
+    try:
+        user_custom_input = st.text_area(
+            label="Restrictions/Ideas?", # Original label
+            value="", # Explicitly set default, though usually not needed for ""
+            height=60,
+            placeholder="e.g., Italian food, no cats, one person is vegan.",
+            help="Any must-haves or must-nots.",
+            key="user_custom_input_area_v1" # Added a unique key
+        )
+    except Exception as e:
+        st.error(f"Error creating text_area: {e}") # Try to catch and display the error directly
+        user_custom_input = "" # Provide a fallback value
+    # --- END TROUBLESHOOTING HERE ---
+
 
     if 'generated_plan_content' not in st.session_state:
         st.session_state.generated_plan_content = {"message": "Your date idea will appear here! ✨"}
+
+    # ... rest of your left_column code
 
 
     if st.button("✨ Generate Plan ✨", type="primary", use_container_width=True):
