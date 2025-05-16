@@ -137,10 +137,11 @@ st.markdown("""
         div[data-testid="stRadio"] > label {
             margin-bottom: 0.2rem !important; font-size: 0.9rem; font-weight: 500; color: #A0A7B3;
         }
-        /* Slider value display text color */
-        div[data-testid="stSlider"] span[data-testid="stText"] {
-             color: #FAFAFA !important; /* Ensure slider value text is visible */
-        }
+        /* Slider value display text color - this targets the RAW value display if format is not used */
+        /* If format is used in slider, this might not be needed or might need adjustment */
+        /* div[data-testid="stSlider"] span[data-testid="stText"] {
+             color: #FAFAFA !important; 
+        } */
 
         div[data-testid="stRadio"] > div[role="radiogroup"] {display: flex; flex-direction: row; justify-content: center; gap: 5px;}
         div[data-testid="stRadio"] > div[role="radiogroup"] > label {
@@ -221,27 +222,36 @@ with left_column:
     
     raw_budget_val = st.slider(
         "Budget Level", 
-        min_value=50, max_value=250, value=100, step=1, 
-        format=lambda x: f"{x/50.0:.2f}", # Corrected
+        min_value=50, 
+        max_value=250, 
+        value=100, 
+        step=1, 
         help="1 (very tight) to 5 (splurge), precision 0.02"
     )
     current_budget_level_scaled = raw_budget_val / 50.0
+    st.caption(f"Selected: {current_budget_level_scaled:.2f}/5")
 
     raw_prep_time_val = st.slider(
         "Preparation Time", 
-        min_value=50, max_value=250, value=100, step=1, 
-        format=lambda x: f"{x/50.0:.2f}", # Corrected
+        min_value=50, 
+        max_value=250, 
+        value=100, 
+        step=1, 
         help="1 (spontaneous) to 5 (elaborate), precision 0.02"
     )
     current_prep_time_level_scaled = raw_prep_time_val / 50.0
+    st.caption(f"Selected: {current_prep_time_level_scaled:.2f}/5")
 
     raw_time_budget_val = st.slider(
         "Max Activity Duration (Hours)", 
-        min_value=25, max_value=400, value=150, step=1, 
-        format=lambda x: f"{x/50.0:.2f}", # Corrected
+        min_value=25, 
+        max_value=400, 
+        value=150, 
+        step=1, 
         help="Set the maximum duration, precision 0.02 hours."
     )
     time_budget_hours_val = raw_time_budget_val / 50.0
+    st.caption(f"Selected: {time_budget_hours_val:.2f} hours")
 
     selected_budget_description = map_budget_value_to_description(current_budget_level_scaled)
     selected_prep_time_description = map_prep_time_value_to_description(current_prep_time_level_scaled)
