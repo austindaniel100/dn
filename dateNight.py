@@ -400,8 +400,10 @@ example_date_plans = [
 
 # --- Helper Functions ---
 
-def generate_detailed_itinerary(api_key, selected_model_name, original_plan):
-    """Generate a detailed itinerary based on the original plan"""
+def generate_detailed_itinerary(api_key, selected_model_name, original_plan, 
+                                original_user_input=None, location_prompt_line=None,
+                                planning_style_prompt_line=None):
+    """Generate a detailed itinerary based on the original plan and user input"""
     if not api_key:
         return {"error": "Google API Key is missing. Please enter it in the sidebar."}
     if not selected_model_name:
@@ -414,20 +416,28 @@ def generate_detailed_itinerary(api_key, selected_model_name, original_plan):
         You are a creative and helpful date night planning assistant. 
         You have already provided a date plan, and now the user wants a MORE DETAILED itinerary with ACTUAL places and activities.
         
+        CRITICALLY IMPORTANT: The user's original custom input contained specific timing and activity preferences that MUST be incorporated:
+        User's Original Input: "{original_user_input if original_user_input else 'None'}"
+        
+        {planning_style_prompt_line if planning_style_prompt_line else ""}
+        {location_prompt_line if location_prompt_line else ""}
+        
         Original Plan Details:
         {json.dumps(original_plan, indent=2)}
         
-        IMPORTANT: Now create a DETAILED ITINERARY with:
-        1. Specific timings for each activity
-        2. ACTUAL restaurant names, venues, or activity locations (search the internet for real places)
-        3. Addresses when possible
-        4. Reservation requirements or booking links if applicable
-        5. Backup options for each activity
-        6. Driving/transportation time between locations
-        7. Specific menu recommendations if applicable
-        8. Parking information if relevant
+        IMPORTANT: Now create a DETAILED ITINERARY that:
+        1. MUST incorporate any specific timing mentioned in the user's original input (e.g., "start at 5pm", "dinner at 7", etc.)
+        2. MUST include any specific activities or venues mentioned by the user
+        3. Provides specific timings for each activity (respecting user's timing preferences)
+        4. Suggests ACTUAL restaurant names, venues, or activity locations (search the internet for real places)
+        5. Includes addresses when possible
+        6. Notes reservation requirements or booking links if applicable
+        7. Offers backup options for each activity
+        8. Estimates driving/transportation time between locations
+        9. Includes specific menu recommendations if applicable
+        10. Provides parking information if relevant
         
-        If the user hasn't specified a location, suggest activities that could work in any major city, or ask them to specify their location.
+        If the user hasn't specified a location, suggest activities that could work in any major city, or note that they should specify their location for more accurate recommendations.
         
         **IMPORTANT INSTRUCTION:**
         Your response MUST be a single, valid JSON object. Do NOT include any text outside of this JSON object.
@@ -1047,7 +1057,14 @@ with right_column:
                 # Generate detailed itinerary if needed
                 if st.session_state.get('should_generate_itinerary', False) and not st.session_state.get('detailed_itinerary'):
                     with st.spinner("🔍 Creating detailed itinerary..."):
-                        detailed_itinerary_result = generate_detailed_itinerary(api_key_input, selected_model, plan_data)
+                        detailed_itinerary_result = generate_detailed_itinerary(
+                            api_key_input, 
+                            selected_model, 
+                            plan_data,
+                            original_user_input=user_custom_input,
+                            location_prompt_line=location_prompt_line,
+                            planning_style_prompt_line=planning_style_prompt_line
+                        )
                         st.session_state.detailed_itinerary = detailed_itinerary_result
                         st.session_state.should_generate_itinerary = False
                         st.rerun()
