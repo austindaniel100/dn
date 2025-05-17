@@ -145,7 +145,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1>💖 Date Night Planner AI 🥂</h1>", unsafe_allow_html=True)
+st.markdown("<h1>💖 Date Night Planner AI! 🥂</h1>", unsafe_allow_html=True)
 
 with st.sidebar:
     st.header("🔑 API & Model Config")
