@@ -333,7 +333,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1>💖 Date Night Planner AI! 🥂</h1>", unsafe_allow_html=True)
+st.markdown("<h1>💖 Date Night AI 🥂</h1>", unsafe_allow_html=True)
 
 # Randomize button centered at the top
 col_rand1, col_rand2, col_rand3 = st.columns([1, 1, 1]) # Renamed to avoid conflict
@@ -481,7 +481,7 @@ with left_column:
         location_prompt_line = f"The user is close to {closest_city} so find specific activities and dinners in that area."
     
     st.markdown("<p class='left-column-section-title'>Additional Information</p>", unsafe_allow_html=True)
-    user_custom_input = st.text_area(label="Any Suggestions or Restrictions?", height=75, placeholder="e.g., loves Italian food, allergic to cats, must be indoors, surprise me!", help="Must-haves, must-nots, or specific ideas?", key="user_custom_input_area_v2")
+    user_custom_input = st.text_area(label="Any Suggestions or Restrictions?", height=75, placeholder="e.g., loves Mexican food, allergic to cats, must be indoors, surprise me!", help="Must-haves, must-nots, or specific ideas?", key="user_custom_input_area_v2")
     
     if 'generated_plan_content' not in st.session_state: 
         st.session_state.generated_plan_content = {"message": "Let's plan something amazing! Fill in your preferences and click Generate."}
