@@ -107,7 +107,8 @@ def generate_date_plan_with_gemini(api_key, selected_model_name,
                                    theme, activity_type,
                                    budget_dollars, prep_time_text, user_input,
                                    time_budget_hours,
-                                   planning_style_prompt_line):
+                                   planning_style_prompt_line,
+                                   location_prompt_line=None):
     if not api_key:
         return {"error": "Google API Key is missing. Please enter it in the sidebar."}
     if not selected_model_name:
@@ -129,6 +130,7 @@ def generate_date_plan_with_gemini(api_key, selected_model_name,
         Your goal is to generate a fun and suitable date night plan based on the user's preferences.
         The user is utilizing the '{selected_model_name}' model.
         {planning_style_prompt_line}
+        {location_prompt_line if location_prompt_line else ""}
 
         User Preferences:
         - Theme: {theme}
@@ -277,6 +279,11 @@ st.markdown("""
             color: #A0A7B3;
             margin-bottom: 0 !important;
             padding: 0 !important;
+        }
+        
+        /* Style the location toggle similar to locks */
+        div[data-testid="stCheckbox"][key="include_location"] > label {
+            font-size: 1rem !important;
         }
         /* Styling for checkbox widget container */
         div[data-testid="stCheckbox"] {
@@ -439,7 +446,7 @@ with left_column:
     with col_duration_lock:
         duration_locked = st.checkbox("🔒", key="duration_lock", help="Lock this setting from randomization")
 
-    st.markdown("<p class='left-column-section-title'>Planning Style & Specifics</p>", unsafe_allow_html=True)
+    st.markdown("<p class='left-column-section-title'>Planning Style & Location</p>", unsafe_allow_html=True)
     
     # Planning style with lock
     col_planning_input, col_planning_lock = st.columns([0.85, 0.15], gap="small")
@@ -452,12 +459,28 @@ with left_column:
     with col_planning_lock:
         planning_locked = st.checkbox("🔒", key="planning_lock", help="Lock this setting from randomization")
     
+    # Location input with toggle
+    col_location_input, col_location_toggle = st.columns([0.85, 0.15], gap="small")
+    with col_location_input:
+        closest_city = st.text_input("Closest City", 
+                                    placeholder="e.g., New York, Los Angeles, Austin", 
+                                    help="Enter your closest city for specific local recommendations",
+                                    key="city_input")
+    with col_location_toggle:
+        include_location = st.checkbox("📍", key="include_location", help="Include this location in the search")
+    
     planning_style_prompt_line = ""
     if selected_planning_style == "Planning Together":
         planning_style_prompt_line = "The user is planning this date collaboratively with their significant other."
     elif selected_planning_style == "Planning For Her":
         planning_style_prompt_line = "The user is planning this date as a surprise or gift for their female significant other."
-
+    
+    # Add location information to prompt if enabled
+    location_prompt_line = ""
+    if include_location and closest_city.strip():
+        location_prompt_line = f"The user is close to {closest_city} so find specific activities and dinners in that area."
+    
+    st.markdown("<p class='left-column-section-title'>Additional Information</p>", unsafe_allow_html=True)
     user_custom_input = st.text_area(label="Any Suggestions or Restrictions?", height=75, placeholder="e.g., loves Italian food, allergic to cats, must be indoors, surprise me!", help="Must-haves, must-nots, or specific ideas?", key="user_custom_input_area_v2")
     
     if 'generated_plan_content' not in st.session_state: 
@@ -475,7 +498,8 @@ with left_column:
                     selected_prep_time,
                     user_custom_input,
                     time_budget_hours_direct,
-                    planning_style_prompt_line
+                    planning_style_prompt_line,
+                    location_prompt_line
                 )
             st.session_state.generated_plan_content = plan_output
             st.session_state.detailed_itinerary = None  # Clear any existing itinerary
