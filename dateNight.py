@@ -256,16 +256,29 @@ st.markdown("""
         }
         .plan-description a {color: #4A90E2; text-decoration: none;}
         .plan-description a:hover {color: #5BA3F5; text-decoration: underline;}
+        
+        /* Styling for checkbox labels */
         div[data-testid="stCheckbox"] > label {
             font-size: 0.8rem !important;
             color: #A0A7B3;
             margin-bottom: 0 !important;
             padding: 0 !important;
         }
+        /* Styling for checkbox widget container */
         div[data-testid="stCheckbox"] {
-            padding-top: 0.8rem !important;
-            margin-bottom: -0.5rem !important;
+            padding-top: 0 !important; /* MODIFIED: Was 0.8rem, caused downward shift */
+            /* margin-bottom: -0.5rem !important; /* MODIFIED: Removed, may not be needed for locks */
         }
+
+        /* Container for lock checkboxes (within col2) */
+        .element-container:has(div[data-testid="stCheckbox"]) {
+            display: flex;
+            align-items: center; /* Vertically centers the checkbox */
+            justify-content: flex-end; /* Aligns checkbox to the right of its column */
+            height: 100%; /* Ensures the container takes full row height for alignment */
+            min-width: 50px; /* Ensures some space for the lock icon */
+        }
+
         /* Reduce spacing between controls */
         .stSelectbox, .stSlider, .stRadio {
             margin-bottom: 0.5rem !important;
@@ -278,14 +291,6 @@ st.markdown("""
             div[data-testid="stColumn"] {
                 padding: 0 !important;
             }
-        }
-        /* Force checkbox to stay inline */
-        .element-container:has(div[data-testid="stCheckbox"]) {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            height: 100%;
-            min-width: 50px;
         }
         /* Randomize button styling */
         div[data-testid="stButton"]:has(button:contains("🎲")) > button {
@@ -301,18 +306,18 @@ st.markdown("""
 st.markdown("<h1>💖 Date Night Planner AI! 🥂</h1>", unsafe_allow_html=True)
 
 # Randomize button centered at the top
-col1, col2, col3 = st.columns([1, 1, 1])
-with col2:
+col_rand1, col_rand2, col_rand3 = st.columns([1, 1, 1]) # Renamed to avoid conflict
+with col_rand2:
     if st.button("🎲 Randomize Settings", type="secondary", use_container_width=True):
         # Randomize theme if not locked
         if not st.session_state.get('theme_lock', False):
-            themes = ["Romantic ❤️", "Fun 🎉", "Chill 🧘", "Adventure 🚀", "Artsy 🎨", "Homebody 🏡", "Intellectual 🧠", "Foodie 🍲", "Mysterious 🕵️", "Nostalgic 🕰️"]
-            st.session_state.theme_value = random.choice(themes)
+            themes_list = ["Romantic ❤️", "Fun 🎉", "Chill 🧘", "Adventure 🚀", "Artsy 🎨", "Homebody 🏡", "Intellectual 🧠", "Foodie 🍲", "Mysterious 🕵️", "Nostalgic 🕰️"]
+            st.session_state.theme_value = random.choice(themes_list)
         
         # Randomize activity type if not locked
         if not st.session_state.get('activity_lock', False):
-            activity_types = ["At Home 🏠", "Out (Casual)🚶", "Out (Fancy)👗", "Outdoor Adventure 🌳", "Creative/DIY 🎨", "Learning Together 📚", "Volunteer/Give Back 🤝", "Relax & Unwind 🛀"]
-            st.session_state.activity_value = random.choice(activity_types)
+            activity_types_list = ["At Home 🏠", "Out (Casual)🚶", "Out (Fancy)👗", "Outdoor Adventure 🌳", "Creative/DIY 🎨", "Learning Together 📚", "Volunteer/Give Back 🤝", "Relax & Unwind 🛀"]
+            st.session_state.activity_value = random.choice(activity_types_list)
         
         # Randomize budget if not locked
         if not st.session_state.get('budget_lock', False):
@@ -320,8 +325,8 @@ with col2:
         
         # Randomize prep time if not locked
         if not st.session_state.get('prep_lock', False):
-            prep_time_options = ["30 minutes", "2 hours", "8 hours", "1 day", "1 week", "1 month"]
-            st.session_state.prep_value = random.choice(prep_time_options)
+            prep_time_options_list = ["30 minutes", "2 hours", "8 hours", "1 day", "1 week", "1 month"]
+            st.session_state.prep_value = random.choice(prep_time_options_list)
         
         # Randomize duration if not locked
         if not st.session_state.get('duration_lock', False):
@@ -329,10 +334,9 @@ with col2:
         
         # Randomize planning style if not locked
         if not st.session_state.get('planning_lock', False):
-            planning_style_options = ["Planning Together", "Planning For Her"]
-            st.session_state.planning_value = random.choice(planning_style_options)
+            planning_style_options_list = ["Planning Together", "Planning For Her"]
+            st.session_state.planning_value = random.choice(planning_style_options_list)
         
-        # Trigger a rerun to show the new values
         st.rerun()
 
 with st.sidebar:
@@ -351,100 +355,79 @@ left_column, right_column = st.columns([0.42, 0.58])
 with left_column:
     st.markdown("<p class='left-column-section-title'>Your Preferences</p>", unsafe_allow_html=True)
     
+    themes = ["Romantic ❤️", "Fun 🎉", "Chill 🧘", "Adventure 🚀", "Artsy 🎨", "Homebody 🏡", "Intellectual 🧠", "Foodie 🍲", "Mysterious 🕵️", "Nostalgic 🕰️"]
+    activity_types = ["At Home 🏠", "Out (Casual)🚶", "Out (Fancy)👗", "Outdoor Adventure 🌳", "Creative/DIY 🎨", "Learning Together 📚", "Volunteer/Give Back 🤝", "Relax & Unwind 🛀"]
+    prep_time_options = ["30 minutes", "2 hours", "8 hours", "1 day", "1 week", "1 month"]
+    planning_style_options = ["Planning Together", "Planning For Her"]
+
     # Theme with lock
-    col1, col2 = st.columns([0.85, 0.15], gap="small")
-    with col1:
-        themes = ["Romantic ❤️", "Fun 🎉", "Chill 🧘", "Adventure 🚀", "Artsy 🎨", "Homebody 🏡", "Intellectual 🧠", "Foodie 🍲", "Mysterious 🕵️", "Nostalgic 🕰️"]
-        theme_key = "theme_select"
-        if 'theme_value' not in st.session_state:
-            st.session_state.theme_value = themes[0]
-        selected_theme = st.selectbox("Theme", themes, key=theme_key, index=themes.index(st.session_state.theme_value), help="Overall mood or vibe for the date?")
+    col_theme_input, col_theme_lock = st.columns([0.85, 0.15], gap="small")
+    with col_theme_input:
+        if 'theme_value' not in st.session_state: st.session_state.theme_value = themes[0]
+        selected_theme = st.selectbox("Theme", themes, index=themes.index(st.session_state.theme_value), help="Overall mood or vibe for the date?", key="theme_select")
         st.session_state.theme_value = selected_theme
-    with col2:
-        theme_locked = st.checkbox("🔒", key="theme_lock", help="Lock this setting from randomization")
-    
+    with col_theme_lock:
+        theme_locked = st.checkbox("🔒", key="theme_lock", help="Lock this setting from randomization", value=st.session_state.get('theme_lock', False))
+
     # Activity Type with lock
-    col1, col2 = st.columns([0.85, 0.15], gap="small")
-    with col1:
-        activity_types = ["At Home 🏠", "Out (Casual)🚶", "Out (Fancy)👗", "Outdoor Adventure 🌳", "Creative/DIY 🎨", "Learning Together 📚", "Volunteer/Give Back 🤝", "Relax & Unwind 🛀"]
-        activity_key = "activity_select"
-        if 'activity_value' not in st.session_state:
-            st.session_state.activity_value = activity_types[0]
-        selected_activity_type = st.selectbox("Activity Type", activity_types, key=activity_key, index=activity_types.index(st.session_state.activity_value), help="General kind of activity?")
+    col_activity_input, col_activity_lock = st.columns([0.85, 0.15], gap="small")
+    with col_activity_input:
+        if 'activity_value' not in st.session_state: st.session_state.activity_value = activity_types[0]
+        selected_activity_type = st.selectbox("Activity Type", activity_types, index=activity_types.index(st.session_state.activity_value), help="General kind of activity?", key="activity_select")
         st.session_state.activity_value = selected_activity_type
-    with col2:
-        activity_locked = st.checkbox("🔒", key="activity_lock", help="Lock this setting from randomization")
+    with col_activity_lock:
+        activity_locked = st.checkbox("🔒", key="activity_lock", help="Lock this setting from randomization", value=st.session_state.get('activity_lock', False))
 
     st.markdown("<p class='left-column-section-title'>Practical Considerations</p>", unsafe_allow_html=True)
 
-    # Budget Level: $1 to $200 with lock
-    col1, col2 = st.columns([0.85, 0.15], gap="small")
-    with col1:
-        budget_key = "budget_slider"
-        if 'budget_value' not in st.session_state:
-            st.session_state.budget_value = 50
+    # Budget Level with lock
+    col_budget_input, col_budget_lock = st.columns([0.85, 0.15], gap="small")
+    with col_budget_input:
+        if 'budget_value' not in st.session_state: st.session_state.budget_value = 50
         actual_budget_dollars_val = st.slider(
-            "Budget (in dollars)",
-            min_value=1, max_value=200, value=st.session_state.budget_value, step=1,
-            format="$%d",
-            help="Select your budget for the date ($1 to $200).",
-            key=budget_key
+            "Budget (in dollars)", min_value=1, max_value=200, value=st.session_state.budget_value, step=1,
+            format="$%d", help="Select your budget for the date ($1 to $200).", key="budget_slider"
         )
         st.session_state.budget_value = actual_budget_dollars_val
-    with col2:
-        budget_locked = st.checkbox("🔒", key="budget_lock", help="Lock this setting from randomization")
+    with col_budget_lock:
+        budget_locked = st.checkbox("🔒", key="budget_lock", help="Lock this setting from randomization", value=st.session_state.get('budget_lock', False))
 
-    # Preparation Time: Select from specific options with lock
-    col1, col2 = st.columns([0.85, 0.15], gap="small")
-    with col1:
-        prep_time_options = ["30 minutes", "2 hours", "8 hours", "1 day", "1 week", "1 month"]
-        prep_key = "prep_slider"
-        if 'prep_value' not in st.session_state:
-            st.session_state.prep_value = "2 hours"
+    # Preparation Time with lock
+    col_prep_input, col_prep_lock = st.columns([0.85, 0.15], gap="small")
+    with col_prep_input:
+        if 'prep_value' not in st.session_state: st.session_state.prep_value = "2 hours"
         selected_prep_time = st.select_slider(
-            "Preparation Time",
-            options=prep_time_options,
-            value=st.session_state.prep_value,
-            help="How much time do you have to prepare for this date?",
-            key=prep_key
+            "Preparation Time", options=prep_time_options, value=st.session_state.prep_value,
+            help="How much time do you have to prepare for this date?", key="prep_slider"
         )
         st.session_state.prep_value = selected_prep_time
-    with col2:
-        prep_locked = st.checkbox("🔒", key="prep_lock", help="Lock this setting from randomization")
+    with col_prep_lock:
+        prep_locked = st.checkbox("🔒", key="prep_lock", help="Lock this setting from randomization", value=st.session_state.get('prep_lock', False))
 
-    # Max Activity Duration: 1 to 8 hours with lock
-    col1, col2 = st.columns([0.85, 0.15], gap="small")
-    with col1:
-        duration_key = "duration_slider"
-        if 'duration_value' not in st.session_state:
-            st.session_state.duration_value = 3
+    # Max Activity Duration with lock
+    col_duration_input, col_duration_lock = st.columns([0.85, 0.15], gap="small")
+    with col_duration_input:
+        if 'duration_value' not in st.session_state: st.session_state.duration_value = 3
         time_budget_hours_direct = st.slider(
-            "Activity Duration (hours)",
-            min_value=1, max_value=8, value=st.session_state.duration_value, step=1,
-            format="%d hours",
-            help="How long should the date activity last? (1-8 hours)",
-            key=duration_key
+            "Activity Duration (hours)", min_value=1, max_value=8, value=st.session_state.duration_value, step=1,
+            format="%d hours", help="How long should the date activity last? (1-8 hours)", key="duration_slider"
         )
         st.session_state.duration_value = time_budget_hours_direct
-    with col2:
-        duration_locked = st.checkbox("🔒", key="duration_lock", help="Lock this setting from randomization")
-
+    with col_duration_lock:
+        duration_locked = st.checkbox("🔒", key="duration_lock", help="Lock this setting from randomization", value=st.session_state.get('duration_lock', False))
 
     st.markdown("<p class='left-column-section-title'>Planning Style & Specifics</p>", unsafe_allow_html=True)
     
     # Planning style with lock
-    col1, col2 = st.columns([0.85, 0.15], gap="small")
-    with col1:
-        planning_style_options = ["Planning Together", "Planning For Her"]
-        planning_key = "planning_style_toggle"
-        if 'planning_value' not in st.session_state:
-            st.session_state.planning_value = planning_style_options[0]
+    col_planning_input, col_planning_lock = st.columns([0.85, 0.15], gap="small")
+    with col_planning_input:
+        if 'planning_value' not in st.session_state: st.session_state.planning_value = planning_style_options[0]
         selected_planning_style = st.radio("How are you planning this date?", planning_style_options, 
                                          index=planning_style_options.index(st.session_state.planning_value), 
-                                         horizontal=True, key=planning_key)
+                                         horizontal=True, key="planning_style_toggle")
         st.session_state.planning_value = selected_planning_style
-    with col2:
-        planning_locked = st.checkbox("🔒", key="planning_lock", help="Lock this setting from randomization")
+    with col_planning_lock:
+        planning_locked = st.checkbox("🔒", key="planning_lock", help="Lock this setting from randomization", value=st.session_state.get('planning_lock', False))
     
     planning_style_prompt_line = ""
     if selected_planning_style == "Planning Together":
@@ -458,6 +441,13 @@ with left_column:
         st.session_state.generated_plan_content = {"message": "Let's plan something amazing! Fill in your preferences and click Generate."}
     
     if st.button("✨ Generate Date Plan ✨", type="primary", use_container_width=True):
+        st.session_state.theme_lock = theme_locked # Persist lock states
+        st.session_state.activity_lock = activity_locked
+        st.session_state.budget_lock = budget_locked
+        st.session_state.prep_lock = prep_locked
+        st.session_state.duration_lock = duration_locked
+        st.session_state.planning_lock = planning_locked
+
         if not api_key_input: st.session_state.generated_plan_content = {"error": "⚠️ Oops! Please enter your Google API Key."}
         elif not selected_model: st.session_state.generated_plan_content = {"error": "⚠️ Please select a Gemini model."}
         else:
@@ -472,8 +462,7 @@ with left_column:
                     planning_style_prompt_line
                 )
             st.session_state.generated_plan_content = plan_output
-            # Reset detailed itinerary when generating a new plan
-            st.session_state.detailed_itinerary = None
+            st.session_state.detailed_itinerary = None # Reset detailed itinerary
 
 with right_column:
     st.markdown("<div class='right-column-content-wrapper'>", unsafe_allow_html=True)
@@ -491,9 +480,7 @@ with right_column:
             elif "title" in plan_data:
                 st.markdown(f"<p class='plan-title'>{plan_data.get('title', 'N/A')}</p>", unsafe_allow_html=True)
                 
-                # Updated meta info display
                 budget_display = f"<b>Budget:</b> ${plan_data.get('budget_dollars', 'N/A')}"
-
                 meta_parts = [
                     f"<b>Theme:</b> {plan_data.get('theme', 'N/A')}",
                     f"<b>Activity:</b> {plan_data.get('activity_type', 'N/A')}",
@@ -509,11 +496,8 @@ with right_column:
                 for i in range(0, len(meta_parts), 2):
                     line_parts = [part for part in meta_parts[i:i+2] if part]
                     line = " | ".join(line_parts)
-                    if line:
-                        meta_html += line + "<br>"
-                if meta_html.endswith("<br>"):
-                    meta_html = meta_html[:-4]
-
+                    if line: meta_html += line + "<br>"
+                if meta_html.endswith("<br>"): meta_html = meta_html[:-4]
                 meta_html += f"<br><i>(Powered by {plan_data.get('model_used', 'Gemini AI')})</i></div>"
                 st.markdown(meta_html, unsafe_allow_html=True)
 
@@ -524,82 +508,57 @@ with right_column:
                     if plan_details.get('step_2_title') and plan_details.get('step_2_description'): st.markdown(f"<span class='plan-step-title'>{plan_details['step_2_title']}:</span> <span class='plan-description'>{plan_details['step_2_description']}</span>", unsafe_allow_html=True)
                     if plan_details.get('food_drinks_suggestions'): st.markdown(f"<span class='plan-step-title'>🍽️ Food & Drinks:</span> <span class='plan-description'>{plan_details['food_drinks_suggestions']}</span>", unsafe_allow_html=True)
                     if plan_details.get('ambiance_extras_suggestions'): st.markdown(f"<span class='plan-step-title'>✨ Ambiance & Extras:</span> <span class='plan-description'>{plan_details['ambiance_extras_suggestions']}</span>", unsafe_allow_html=True)
+                
                 tips = plan_data.get('tips_and_considerations', [])
                 if tips and any(tip.strip() for tip in tips):
                     st.markdown("<p class='plan-section-title'>💡 Pro Tips & Considerations:</p>", unsafe_allow_html=True)
                     for tip in tips:
                         if tip.strip(): st.markdown(f"<div class='plan-list-item'>{tip}</div>", unsafe_allow_html=True)
                 
-                # Add detailed itinerary button
-                if 'detailed_itinerary' not in st.session_state:
-                    st.session_state.detailed_itinerary = None
+                if 'detailed_itinerary' not in st.session_state: st.session_state.detailed_itinerary = None
                 
                 if st.button("📍 Get Detailed Itinerary with Real Places", type="secondary", use_container_width=True):
                     with st.spinner("🔍 Searching for real places and creating detailed itinerary..."):
-                        detailed_itinerary = generate_detailed_itinerary(
-                            api_key_input, 
-                            selected_model,
-                            plan_data
-                        )
-                    st.session_state.detailed_itinerary = detailed_itinerary
-                
-                # Display detailed itinerary if it exists
+                        detailed_itinerary_result = generate_detailed_itinerary(api_key_input, selected_model, plan_data) # Renamed variable
+                    st.session_state.detailed_itinerary = detailed_itinerary_result # Use renamed variable
+
                 if st.session_state.detailed_itinerary:
                     st.markdown("<p class='plan-section-title'>📍 Detailed Itinerary:</p>", unsafe_allow_html=True)
-                    
-                    itinerary = st.session_state.detailed_itinerary
-                    if "error" in itinerary:
-                        st.markdown(f"<div class='plan-error-message'>{itinerary['error']}</div>", unsafe_allow_html=True)
+                    itinerary_data = st.session_state.detailed_itinerary # Renamed variable
+                    if "error" in itinerary_data:
+                        st.markdown(f"<div class='plan-error-message'>{itinerary_data['error']}</div>", unsafe_allow_html=True)
                     else:
-                        # Location note
-                        if itinerary.get('location_note'):
-                            st.markdown(f"<div class='plan-description'><b>Note:</b> {itinerary['location_note']}</div>", unsafe_allow_html=True)
-                        
-                        # Timeline
+                        if itinerary_data.get('location_note'): st.markdown(f"<div class='plan-description'><b>Note:</b> {itinerary_data['location_note']}</div>", unsafe_allow_html=True)
                         st.markdown("<p class='plan-section-title'>⏰ Timeline:</p>", unsafe_allow_html=True)
-                        for item in itinerary.get('timeline', []):
+                        for item in itinerary_data.get('timeline', []):
                             st.markdown(f"<div class='plan-step-title'>{item.get('time', 'TBD')} - {item.get('activity', 'Activity')}</div>", unsafe_allow_html=True)
                             st.markdown(f"<div class='plan-description'><b>📍 Location:</b> {item.get('location', 'TBD')}</div>", unsafe_allow_html=True)
-                            if item.get('address'):
-                                st.markdown(f"<div class='plan-description'><b>🏠 Address:</b> {item.get('address')}</div>", unsafe_allow_html=True)
+                            if item.get('address'): st.markdown(f"<div class='plan-description'><b>🏠 Address:</b> {item.get('address')}</div>", unsafe_allow_html=True)
                             st.markdown(f"<div class='plan-description'>{item.get('details', '')}</div>", unsafe_allow_html=True)
                             if item.get('booking_required'):
                                 booking_text = f"<b>📅 Booking Required</b>"
-                                if item.get('booking_link'):
-                                    booking_text += f" - <a href='{item['booking_link']}' target='_blank'>Make Reservation</a>"
+                                if item.get('booking_link'): booking_text += f" - <a href='{item['booking_link']}' target='_blank'>Make Reservation</a>"
                                 st.markdown(f"<div class='plan-description'>{booking_text}</div>", unsafe_allow_html=True)
-                            if item.get('cost_estimate'):
-                                st.markdown(f"<div class='plan-description'><b>💰 Cost:</b> {item['cost_estimate']}</div>", unsafe_allow_html=True)
-                            if item.get('parking'):
-                                st.markdown(f"<div class='plan-description'><b>🚗 Parking:</b> {item['parking']}</div>", unsafe_allow_html=True)
+                            if item.get('cost_estimate'): st.markdown(f"<div class='plan-description'><b>💰 Cost:</b> {item['cost_estimate']}</div>", unsafe_allow_html=True)
+                            if item.get('parking'): st.markdown(f"<div class='plan-description'><b>🚗 Parking:</b> {item['parking']}</div>", unsafe_allow_html=True)
                             if item.get('tips'):
-                                for tip in item['tips']:
-                                    st.markdown(f"<div class='plan-list-item'>{tip}</div>", unsafe_allow_html=True)
+                                for tip_item in item['tips']: st.markdown(f"<div class='plan-list-item'>{tip_item}</div>", unsafe_allow_html=True) # Renamed inner loop var
                             st.markdown("<br>", unsafe_allow_html=True)
                         
-                        # Backup options
-                        if itinerary.get('backup_options'):
+                        if itinerary_data.get('backup_options'):
                             st.markdown("<p class='plan-section-title'>🔄 Backup Options:</p>", unsafe_allow_html=True)
-                            for backup in itinerary['backup_options']:
+                            for backup in itinerary_data['backup_options']:
                                 st.markdown(f"<div class='plan-step-title'>Alternative for {backup.get('for_activity', 'Activity')}: {backup.get('alternative', 'TBD')}</div>", unsafe_allow_html=True)
                                 st.markdown(f"<div class='plan-description'><b>Why:</b> {backup.get('reason', '')}</div>", unsafe_allow_html=True)
                                 st.markdown(f"<div class='plan-description'>{backup.get('details', '')}</div>", unsafe_allow_html=True)
                         
-                        # Additional info
-                        if itinerary.get('transportation_notes'):
-                            st.markdown(f"<div class='plan-description'><b>🚕 Transportation:</b> {itinerary['transportation_notes']}</div>", unsafe_allow_html=True)
-                        
-                        if itinerary.get('total_estimated_cost'):
-                            st.markdown(f"<div class='plan-description'><b>💵 Total Estimated Cost:</b> {itinerary['total_estimated_cost']}</div>", unsafe_allow_html=True)
-                        
-                        if itinerary.get('weather_contingency'):
-                            st.markdown(f"<div class='plan-description'><b>🌧️ Weather Contingency:</b> {itinerary['weather_contingency']}</div>", unsafe_allow_html=True)
-                        
-                        if itinerary.get('special_considerations'):
+                        if itinerary_data.get('transportation_notes'): st.markdown(f"<div class='plan-description'><b>🚕 Transportation:</b> {itinerary_data['transportation_notes']}</div>", unsafe_allow_html=True)
+                        if itinerary_data.get('total_estimated_cost'): st.markdown(f"<div class='plan-description'><b>💵 Total Estimated Cost:</b> {itinerary_data['total_estimated_cost']}</div>", unsafe_allow_html=True)
+                        if itinerary_data.get('weather_contingency'): st.markdown(f"<div class='plan-description'><b>🌧️ Weather Contingency:</b> {itinerary_data['weather_contingency']}</div>", unsafe_allow_html=True)
+                        if itinerary_data.get('special_considerations'):
                             st.markdown("<p class='plan-section-title'>⚠️ Special Considerations:</p>", unsafe_allow_html=True)
-                            for consideration in itinerary['special_considerations']:
-                                st.markdown(f"<div class='plan-list-item'>{consideration}</div>", unsafe_allow_html=True)
+                            for consideration in itinerary_data['special_considerations']: st.markdown(f"<div class='plan-list-item'>{consideration}</div>", unsafe_allow_html=True)
         else:
             st.markdown(f"<p class='plan-description'>{str(plan_data)}</p>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True) # End date-plan-output-container
+    st.markdown("</div>", unsafe_allow_html=True) # End right-column-content-wrapper
