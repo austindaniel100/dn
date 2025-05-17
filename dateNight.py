@@ -317,7 +317,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1>💖 Date Night AI 🥂</h1>", unsafe_allow_html=True)
+st.markdown("<h1>💖 Date Night Planner AI! 🥂</h1>", unsafe_allow_html=True)
 
 # Randomize button centered at the top
 col_rand1, col_rand2, col_rand3 = st.columns([1, 1, 1]) # Renamed to avoid conflict
