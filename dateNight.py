@@ -502,6 +502,106 @@ def generate_detailed_itinerary(api_key, selected_model_name, original_plan,
     except Exception as e: 
         return {"error": f"An error occurred: {e}"}
 
+def generate_date_plan_with_addition(api_key, selected_model_name,
+                                    original_plan, addition,
+                                    theme, activity_type,
+                                    budget_dollars, prep_time_text,
+                                    time_budget_hours,
+                                    planning_style_prompt_line,
+                                    location_prompt_line=None):
+    """Generate a modified date plan that incorporates user's addition while staying close to original"""
+    if not api_key:
+        return {"error": "Google API Key is missing. Please enter it in the sidebar."}
+    if not selected_model_name:
+        return {"error": "Please select a Gemini model in the sidebar."}
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(model_name=selected_model_name)
+
+        time_budget_line = f"- Maximum Activity Duration: {time_budget_hours} hours." if time_budget_hours is not None else ""
+        
+        actual_planning_style_for_json = "Not specified"
+        if planning_style_prompt_line:
+            parts = planning_style_prompt_line.split(': ', 1)
+            if len(parts) > 1:
+                actual_planning_style_for_json = parts[1].strip()
+
+        prompt = f"""
+        You are a creative and helpful date night planning assistant.
+        The user has already received a date plan and now wants to MODIFY it by adding a specific element.
+        Your goal is to update the existing plan while keeping it as similar as possible to the original.
+        
+        ORIGINAL PLAN:
+        {json.dumps(original_plan, indent=2)}
+        
+        USER'S ADDITION REQUEST: "{addition}"
+        
+        CRITICAL INSTRUCTIONS:
+        1. Keep the plan as close to the original as possible
+        2. Incorporate the user's addition seamlessly into the existing plan
+        3. Maintain the same theme, budget constraints, and overall structure
+        4. Only change what's necessary to accommodate the addition
+        5. If the addition conflicts with the budget, suggest budget-friendly ways to include it
+        
+        {planning_style_prompt_line}
+        {location_prompt_line if location_prompt_line else ""}
+        
+        Original Preferences (for reference):
+        - Theme: {theme}
+        - Activity Type: {activity_type}
+        - Budget: ${budget_dollars}
+        - Preparation Time: {prep_time_text}
+        {time_budget_line}
+        
+        **IMPORTANT INSTRUCTION:**
+        Your response MUST be a single, valid JSON object following the same structure as the original.
+        Update the relevant fields to reflect the addition while keeping as much of the original plan intact as possible.
+        
+        {{
+          "title": "[Updated title if needed, or keep original]",
+          "theme": "{theme}",
+          "activity_type": "{activity_type}",
+          "budget_dollars": {budget_dollars},
+          "prep_time": "{prep_time_text}",
+          "time_budget_hours": {time_budget_hours},
+          "planning_style": "{actual_planning_style_for_json}",
+          "model_used": "{selected_model_name}",
+          "emoji_story": {{
+            "story": "[Updated emoji story reflecting the addition]",
+            "description": "[Updated description of the emoji journey]"
+          }},
+          "plan_details": {{
+            "step_1_title": "[Update if needed to incorporate addition]",
+            "step_1_description": "[Update if needed to incorporate addition]",
+            "step_2_title": "[Update if needed to incorporate addition]",
+            "step_2_description": "[Update if needed to incorporate addition]",
+            "food_drinks_suggestions": "[Update if addition relates to food/drinks]",
+            "ambiance_extras_suggestions": "[Update if addition relates to ambiance/extras]"
+          }},
+          "tips_and_considerations": [
+            "[Update tips to reflect the addition]",
+            "[Add new tip if needed]"
+          ]
+        }}
+        """
+        
+        response = model.generate_content(prompt)
+        raw_text_response = ""
+        if hasattr(response, 'text'): raw_text_response = response.text
+        elif isinstance(response, str): raw_text_response = response
+        elif hasattr(response, 'parts') and response.parts: raw_text_response = "".join(part.text for part in response.parts if hasattr(part, 'text'))
+        else: return {"error": f"Unexpected response format from API: {str(response)}"}
+
+        if raw_text_response.strip().startswith("```json"):
+            raw_text_response = raw_text_response.strip()[7:]
+            if raw_text_response.strip().endswith("```"): raw_text_response = raw_text_response.strip()[:-3]
+        try:
+            return json.loads(raw_text_response.strip())
+        except json.JSONDecodeError as e:
+            error_detail = f"Failed to parse JSON. Error: {e}. Raw (first 500 chars): '{raw_text_response[:500]}...'"
+            return {"error": error_detail}
+    except Exception as e: return {"error": f"An error occurred: {e}"}
+
 def generate_date_plan_with_gemini(api_key, selected_model_name,
                                    theme, activity_type,
                                    budget_dollars, prep_time_text, user_input,
@@ -737,6 +837,15 @@ st.markdown("""
         }
         div[data-testid="stButton"]:has(button:contains("🎁")) > button:hover {
             background-color: #3DDC84 !important;
+        }
+        
+        /* Make Addition button styling */
+        div[data-testid="stButton"]:has(button:contains("🔄")) > button {
+            background-color: #3498DB !important;
+            margin-top: 0.3rem !important;
+        }
+        div[data-testid="stButton"]:has(button:contains("🔄")) > button:hover {
+            background-color: #5DADE2 !important;
         }
         
         /* Separator styling */
@@ -1053,6 +1162,41 @@ with right_column:
                     emoji_description = plan_data['emoji_story'].get('description', '')
                     if emoji_description:
                         st.markdown(f"<div class='emoji-story-description'>{emoji_description}</div>", unsafe_allow_html=True)
+                
+                # Add "Make an Addition" section after the plan is generated
+                st.markdown("<hr style='margin: 2rem 0; opacity: 0.3;'>", unsafe_allow_html=True)
+                st.markdown("<p class='plan-section-title' style='text-align: center;'>🔧 Want to modify this plan?</p>", unsafe_allow_html=True)
+                
+                col_addition_text, col_addition_button = st.columns([3, 1])
+                with col_addition_text:
+                    addition_input = st.text_input(
+                        "Add a new element to your date", 
+                        placeholder="e.g., add alcohol, make it more budget-friendly, include live music, add dessert...",
+                        key="addition_input"
+                    )
+                with col_addition_button:
+                    if st.button("🔄 Make Addition", type="secondary", use_container_width=True):
+                        if addition_input.strip() and api_key_input and selected_model:
+                            with st.spinner("🔄 Updating your date plan..."):
+                                # Create a modified prompt that includes the original plan and the addition
+                                modified_plan_output = generate_date_plan_with_addition(
+                                    api_key_input, selected_model,
+                                    original_plan=plan_data,
+                                    addition=addition_input,
+                                    theme=selected_theme, 
+                                    activity_type=selected_activity_type,
+                                    budget_dollars=actual_budget_dollars_val,
+                                    prep_time_text=selected_prep_time,
+                                    time_budget_hours=time_budget_hours_direct,
+                                    planning_style_prompt_line=planning_style_prompt_line,
+                                    location_prompt_line=location_prompt_line
+                                )
+                            st.session_state.generated_plan_content = modified_plan_output
+                            st.session_state.detailed_itinerary = None  # Clear existing itinerary
+                            st.session_state.should_generate_itinerary = isinstance(modified_plan_output, dict) and "title" in modified_plan_output
+                            st.rerun()
+                        elif not addition_input.strip():
+                            st.error("Please enter what you'd like to add to the plan.")
                 
                 # Generate detailed itinerary if needed
                 if st.session_state.get('should_generate_itinerary', False) and not st.session_state.get('detailed_itinerary'):
