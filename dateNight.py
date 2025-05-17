@@ -10,39 +10,10 @@ load_dotenv()
 
 # --- Helper Functions ---
 
-# NEW: Helper to map dollar budget to a 1-5 descriptive level
-def get_budget_level_from_dollars(dollar_value):
-    if dollar_value <= 20: return 1    # Up to $20
-    elif dollar_value <= 50: return 2  # $21 - $50
-    elif dollar_value <= 100: return 3 # $51 - $100
-    elif dollar_value <= 150: return 4 # $101 - $150
-    else: return 5                     # $151 - $200
-
-# Updated to take the direct dollar value
-def map_budget_value_to_description(dollar_value_int):
-    level = get_budget_level_from_dollars(dollar_value_int) # Get the 1-5 level
-    if level == 1: return "Extremely tight, focus on free or DIY options, minimal to no spending (up to ~$20)."
-    if level == 2: return "Very low budget, some minimal spending is acceptable (~$21-$50)."
-    if level == 3: return "Moderate budget, allows for a casual outing or some purchases (~$51-$100)."
-    if level == 4: return "Generous budget, can afford a nice dinner out or event tickets (~$101-$150)."
-    return "Splurge / Special Occasion, high budget, willing to spend significantly (~$151-$200)."
-
-# This function now takes a direct 1-5 float value
-def map_prep_time_value_to_description(value_float):
-    value = round(value_float) # Still round for discrete categories
-    if value == 1: return "Almost no preparation needed (under 30 mins), very spontaneous."
-    if value == 2: return "Quick preparation (30 mins to 1 hour)."
-    if value == 3: return "Moderate preparation (1-2 hours)."
-    if value == 4: return "Involved preparation (2-4 hours), some planning."
-    return "Elaborate preparation (4+ hours), significant planning."
-
 def generate_date_plan_with_gemini(api_key, selected_model_name,
                                    theme, activity_type,
-                                   budget_desc, prep_time_desc, user_input,
-                                   actual_budget_dollars, # NEW: pass actual dollars
-                                   current_budget_level_api, # This is the 1-5 scale for API
-                                   current_prep_time_level, # This is the direct 1-5 float
-                                   time_budget_hours, # This is the direct 1-8 float
+                                   budget_dollars, prep_time_text, user_input,
+                                   time_budget_hours,
                                    planning_style_prompt_line):
     if not api_key:
         return {"error": "Google API Key is missing. Please enter it in the sidebar."}
@@ -52,7 +23,7 @@ def generate_date_plan_with_gemini(api_key, selected_model_name,
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel(model_name=selected_model_name)
 
-        time_budget_line = f"- Maximum Activity Duration: Approximately {time_budget_hours:.2f} hours." if time_budget_hours is not None else ""
+        time_budget_line = f"- Maximum Activity Duration: {time_budget_hours} hours." if time_budget_hours is not None else ""
         
         actual_planning_style_for_json = "Not specified"
         if planning_style_prompt_line:
@@ -60,7 +31,6 @@ def generate_date_plan_with_gemini(api_key, selected_model_name,
             if len(parts) > 1:
                 actual_planning_style_for_json = parts[1].strip()
 
-        # Note: current_budget_level_api is the 1-5 scale for the prompt
         prompt = f"""
         You are a creative and helpful date night planning assistant.
         Your goal is to generate a fun and suitable date night plan based on the user's preferences.
@@ -70,8 +40,8 @@ def generate_date_plan_with_gemini(api_key, selected_model_name,
         User Preferences:
         - Theme: {theme}
         - Activity Type: {activity_type}
-        - Budget Consideration: "${actual_budget_dollars}" which is "{budget_desc}" (Approx. level: {current_budget_level_api:.2f}/5)
-        - Time to Prepare Consideration: "{prep_time_desc}" (Approx. level: {current_prep_time_level:.2f}/5)
+        - Budget: ${budget_dollars} (The user has exactly ${budget_dollars} to spend on this date)
+        - Preparation Time Available: {prep_time_text} (The user wants something that can be prepared within {prep_time_text})
         {time_budget_line}
         - User's specific suggestions or restrictions: "{user_input if user_input else 'None'}"
 
@@ -84,12 +54,9 @@ def generate_date_plan_with_gemini(api_key, selected_model_name,
           "title": "[Catchy Date Night Title - concise, max 5-7 words]",
           "theme": "{theme}",
           "activity_type": "{activity_type}",
-          "budget_dollars": {actual_budget_dollars},
-          "budget_level_approx": {current_budget_level_api:.2f},
-          "budget_description": "{budget_desc}",
-          "prep_time_level": {current_prep_time_level:.2f},
-          "prep_time_description": "{prep_time_desc}",
-          "time_budget_hours": "{time_budget_hours:.2f} hours" if time_budget_hours is not None else "Not specified",
+          "budget_dollars": {budget_dollars},
+          "prep_time": "{prep_time_text}",
+          "time_budget_hours": {time_budget_hours},
           "planning_style": "{actual_planning_style_for_json}",
           "model_used": "{selected_model_name}",
           "plan_details": {{
@@ -203,40 +170,32 @@ with left_column:
     st.markdown("<p class='left-column-section-title'>Practical Considerations</p>", unsafe_allow_html=True)
 
     # Budget Level: $1 to $200
-    # The slider will now directly show dollar amounts.
     actual_budget_dollars_val = st.slider(
-        "Budget",
-        min_value=1, max_value=200, value=50, step=1, # Integer dollar values
-        format="$%d", # Display as dollars on the slider
-        help="Select your approximate budget for the date ($1 to $200)."
+        "Budget (in dollars)",
+        min_value=1, max_value=200, value=50, step=1,
+        format="$%d",
+        help="Select your budget for the date ($1 to $200)."
     )
-    # Get the 1-5 level for API prompt and description mapping
-    current_budget_level_for_api = float(get_budget_level_from_dollars(actual_budget_dollars_val))
-    selected_budget_description = map_budget_value_to_description(actual_budget_dollars_val)
-    st.caption(f"Selected: ${actual_budget_dollars_val} (Approx. Level: {current_budget_level_for_api:.1f}/5)")
+    st.caption(f"Selected: ${actual_budget_dollars_val}")
 
-
-    # Preparation Time: Displays 1.00 to 5.00 directly
-    # The slider returns a float in the range 1.0 to 5.0
-    current_prep_time_level_direct = st.slider(
-        "Preparation Time (Scale 1-5)",
-        min_value=1.0, max_value=5.0, value=2.5, step=0.02, # Float values for slider
-        format="%.2f", # Display with 2 decimal places on slider
-        help="1 (spontaneous, <30min) to 5 (elaborate, 4+ hrs). Precision 0.02."
+    # Preparation Time: Select from specific options
+    prep_time_options = ["30 minutes", "2 hours", "8 hours", "1 day", "1 week", "1 month"]
+    selected_prep_time = st.select_slider(
+        "Preparation Time",
+        options=prep_time_options,
+        value="2 hours",
+        help="How much time do you have to prepare for this date?"
     )
-    selected_prep_time_description = map_prep_time_value_to_description(current_prep_time_level_direct)
-    st.caption(f"Selected: {current_prep_time_level_direct:.2f}/5")
+    st.caption(f"Selected: {selected_prep_time}")
 
-
-    # Max Activity Duration: Displays 1.00 to 8.00 hours directly
-    # The slider returns a float in the range 1.0 to 8.0
+    # Max Activity Duration: 1 to 8 hours
     time_budget_hours_direct = st.slider(
-        "Max Activity Duration (Hours)",
-        min_value=1.0, max_value=8.0, value=3.0, step=0.02, # Float values for slider
-        format="%.2f hours", # Display with " hours" on slider
-        help="Set the maximum activity duration (1.00 to 8.00 hours). Precision 0.02."
+        "Activity Duration (hours)",
+        min_value=1, max_value=8, value=3, step=1,
+        format="%d hours",
+        help="How long should the date activity last? (1-8 hours)"
     )
-    st.caption(f"Selected: {time_budget_hours_direct:.2f} hours")
+    st.caption(f"Selected: {time_budget_hours_direct} hours")
 
 
     st.markdown("<p class='left-column-section-title'>Planning Style & Specifics</p>", unsafe_allow_html=True)
@@ -262,12 +221,10 @@ with left_column:
                 plan_output = generate_date_plan_with_gemini(
                     api_key_input, selected_model,
                     selected_theme, selected_activity_type,
-                    selected_budget_description, selected_prep_time_description,
+                    actual_budget_dollars_val,
+                    selected_prep_time,
                     user_custom_input,
-                    actual_budget_dollars_val, # Pass the direct dollar amount
-                    current_budget_level_for_api, # Pass the derived 1-5 budget level
-                    current_prep_time_level_direct, # Pass the direct 1-5 prep time
-                    time_budget_hours_direct, # Pass the direct 1-8 hours
+                    time_budget_hours_direct,
                     planning_style_prompt_line
                 )
             st.session_state.generated_plan_content = plan_output
@@ -289,19 +246,16 @@ with right_column:
                 st.markdown(f"<p class='plan-title'>{plan_data.get('title', 'N/A')}</p>", unsafe_allow_html=True)
                 
                 # Updated meta info display
-                budget_display = f"<b>Budget:</b> ${plan_data.get('budget_dollars', 'N/A')} ({plan_data.get('budget_description', 'N/A')})"
-                if 'budget_level_approx' in plan_data: # For backward compatibility if old JSON structure is somehow cached
-                     budget_display = f"<b>Budget:</b> ${plan_data.get('budget_dollars', 'N/A')} (Approx. Level {plan_data.get('budget_level_approx', 'N/A')}/5 - {plan_data.get('budget_description', 'N/A')})"
-
+                budget_display = f"<b>Budget:</b> ${plan_data.get('budget_dollars', 'N/A')}"
 
                 meta_parts = [
                     f"<b>Theme:</b> {plan_data.get('theme', 'N/A')}",
                     f"<b>Activity:</b> {plan_data.get('activity_type', 'N/A')}",
                     budget_display,
-                    f"<b>Prep Time:</b> {plan_data.get('prep_time_level', 'N/A')}/5 ({plan_data.get('prep_time_description', 'N/A')})",
+                    f"<b>Prep Time:</b> {plan_data.get('prep_time', 'N/A')}",
                 ]
-                if plan_data.get('time_budget_hours') != "Not specified":
-                    meta_parts.append(f"<b>Max Duration:</b> {plan_data.get('time_budget_hours', 'N/A')}")
+                if plan_data.get('time_budget_hours'):
+                    meta_parts.append(f"<b>Max Duration:</b> {plan_data.get('time_budget_hours', 'N/A')} hours")
                 if plan_data.get('planning_style') != "Not specified" and plan_data.get('planning_style'):
                      meta_parts.append(f"<b>Planning Style:</b> {plan_data.get('planning_style')}")
                 
