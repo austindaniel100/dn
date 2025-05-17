@@ -11,114 +11,6 @@ load_dotenv()
 
 # --- Helper Functions ---
 
-def generate_date_night_image(api_key, selected_model_name, plan_data, detailed_itinerary=None):
-    """Generate an image based on the date plan using Gemini"""
-    if not api_key:
-        return {"error": "Google API Key is missing."}
-    
-    try:
-        genai.configure(api_key=api_key)
-        
-        # Use the latest flash model for the best results
-        model = genai.GenerativeModel(model_name="gemini-2.5-flash-preview-04-17")
-        
-        # Create a comprehensive prompt from the plan data
-        image_prompt = f"""
-        Create a beautiful, artistic visualization for this date night plan:
-        
-        Title: {plan_data.get('title', 'Date Night')}
-        Theme: {plan_data.get('theme', 'Romantic')}
-        Activity Type: {plan_data.get('activity_type', '')}
-        Budget: ${plan_data.get('budget_dollars', 50)}
-        Duration: {plan_data.get('time_budget_hours', 3)} hours
-        """
-        
-        # Add plan details
-        plan_details = plan_data.get('plan_details', {})
-        if plan_details:
-            image_prompt += """
-        
-        Main Activities:"""
-            if plan_details.get('step_1_title'):
-                image_prompt += f"\n- {plan_details.get('step_1_title', '')}: {plan_details.get('step_1_description', '')}"
-            if plan_details.get('step_2_title'):
-                image_prompt += f"\n- {plan_details.get('step_2_title', '')}: {plan_details.get('step_2_description', '')}"
-            if plan_details.get('food_drinks_suggestions'):
-                image_prompt += f"\nFood & Drinks: {plan_details['food_drinks_suggestions']}"
-            if plan_details.get('ambiance_extras_suggestions'):
-                image_prompt += f"\nAmbiance: {plan_details['ambiance_extras_suggestions']}"
-        
-        # Add detailed itinerary if available
-        if detailed_itinerary and 'timeline' in detailed_itinerary:
-            image_prompt += "\n\nSpecific Locations:"
-            for item in detailed_itinerary.get('timeline', [])[:3]:  # Limit to first 3 for brevity
-                location = item.get('location', '')
-                activity = item.get('activity', '')
-                if location and activity:
-                    image_prompt += f"\n- {activity} at {location}"
-        
-        # Get a vivid image description
-        description_prompt = f"""
-        Based on this date night plan, create a detailed artistic description of what a beautiful 
-        image representing this date would look like. Include:
-        - Color palette (warm, romantic colors)
-        - Composition and layout
-        - Specific visual elements that represent the activities
-        - Mood and atmosphere
-        - Lighting and ambiance
-        
-        Make it romantic, aspirational, and visually appealing. Describe it as if you were an artist 
-        planning to paint or photograph this scene.
-        
-        {image_prompt}
-        
-        Create a cohesive visual story that captures the essence of this specific date plan.
-        """
-        
-        # Generate the detailed image description
-        response = model.generate_content(description_prompt)
-        
-        if hasattr(response, 'text'):
-            image_description = response.text
-        else:
-            image_description = str(response)
-        
-        # Create a more concise prompt for actual image generation
-        image_generation_prompt = f"""
-        Romantic date night scene: {plan_data.get('title', 'Date Night')}
-        Style: Warm, romantic, photorealistic or artistic illustration
-        Elements: {plan_data.get('theme', '')} theme, {plan_data.get('activity_type', '')}
-        Mood: Intimate, cozy, aspirational
-        """
-        
-        # Include key visual elements from the description
-        key_elements = []
-        if 'sunset' in image_description.lower() or 'golden hour' in image_description.lower():
-            key_elements.append('golden hour lighting')
-        if 'candl' in image_description.lower():
-            key_elements.append('candlelight')
-        if 'restaurant' in image_description.lower() or 'dining' in image_description.lower():
-            key_elements.append('elegant dining setting')
-        if 'outdoor' in image_description.lower() or 'picnic' in image_description.lower():
-            key_elements.append('outdoor romantic setting')
-        if 'cozy' in image_description.lower() or 'home' in plan_data.get('activity_type', '').lower():
-            key_elements.append('cozy home atmosphere')
-            
-        if key_elements:
-            image_generation_prompt += f"\nKey visual elements: {', '.join(key_elements)}"
-        
-        return {
-            "description": image_description,
-            "generation_prompt": image_generation_prompt,
-            "visual_elements": key_elements,
-            "theme": plan_data.get('theme', 'Romantic'),
-            "style_guide": "Warm color palette, soft lighting, romantic atmosphere",
-            "note": "This description can be used with image generation APIs like DALL-E or Stable Diffusion"
-        }
-        
-    except Exception as e:
-        return {"error": f"Failed to generate image: {str(e)}"}
-
 def generate_detailed_itinerary(api_key, selected_model_name, original_plan):
     """Generate a detailed itinerary based on the original plan"""
     if not api_key:
@@ -260,6 +152,13 @@ def generate_date_plan_with_gemini(api_key, selected_model_name,
           "time_budget_hours": {time_budget_hours},
           "planning_style": "{actual_planning_style_for_json}",
           "model_used": "{selected_model_name}",
+          "gradient_colors": {{
+            "top_left": "[HEX color code]",
+            "top_right": "[HEX color code]",
+            "bottom_left": "[HEX color code]",
+            "bottom_right": "[HEX color code]",
+            "description": "[Brief explanation of why these colors match the date theme]"
+          }},
           "plan_details": {{
             "step_1_title": "[Concise title for Step 1]",
             "step_1_description": "[Concise description for Step 1, 1-2 sentences]",
@@ -274,6 +173,13 @@ def generate_date_plan_with_gemini(api_key, selected_model_name,
           ]
         }}
 
+        For gradient_colors, choose 4 HEX color codes that create a beautiful gradient matching the theme and mood of the date.
+        For example:
+        - Romantic theme: soft pinks, purples, and warm tones
+        - Adventure theme: vibrant blues, greens, and oranges
+        - Chill theme: soft blues, lavenders, and neutral tones
+        - Mysterious theme: deep purples, blacks, and midnight blues
+        
         Ensure all string values within the JSON are extremely concise and to the point. Brevity is key.
         If a time budget is provided, suggest activities that fit within that duration.
         """
@@ -333,7 +239,7 @@ st.markdown("""
         [data-testid="stSidebar"] .stTextInput input, [data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] > div {background-color: #262B34; color: #FAFAFA; border: 1px solid #333A44;}
         [data-testid="stSidebar"] h2 {color: #A9D5FF; font-size: 1.2rem;}
         [data-testid="stSidebar"] .stMarkdown p, [data-testid="stSidebar"] .stAlert p {color: #BDC3C7;}
-        .date-plan-output-container {max-height: calc(100vh - 200px); overflow-y: auto; padding: 20px; background-color: #1C2028; border: 1px solid #333A44; border-radius: 8px; color: #D0D3D4; font-size: 0.9em; line-height: 1.6; box-shadow: 0 4px 12px rgba(0,0,0,0.3); margin-top: 0.5rem;}
+        .date-plan-output-container {max-height: calc(100vh - 200px); overflow-y: auto; padding: 20px; background-color: rgba(28, 32, 40, 0.9); border: 1px solid #333A44; border-radius: 8px; color: #D0D3D4; font-size: 0.9em; line-height: 1.6; box-shadow: 0 4px 12px rgba(0,0,0,0.3); margin-top: 0.5rem; backdrop-filter: blur(10px);}
         .plan-title {font-size: 1.6em; font-weight: 700; color: #FFD700; margin-bottom: 0.6em; text-align: center; border-bottom: 2px solid #FFD700; padding-bottom: 0.3em;}
         .plan-meta-info {font-size: 0.95em; color: #85929E; margin-bottom: 1em; text-align: center; font-style: italic; line-height: 1.4;}
         .plan-meta-info b {color: #AAB7B8; font-weight: 500;}
@@ -564,10 +470,25 @@ with left_column:
                 )
             st.session_state.generated_plan_content = plan_output
             st.session_state.detailed_itinerary = None # Reset detailed itinerary
-            st.session_state.generated_image = None # Reset generated image
 
 with right_column:
-    st.markdown("<div class='right-column-content-wrapper'>", unsafe_allow_html=True)
+    # Check if we have gradient colors in the plan data
+    gradient_style = ""
+    if isinstance(st.session_state.generated_plan_content, dict) and "gradient_colors" in st.session_state.generated_plan_content:
+        colors = st.session_state.generated_plan_content["gradient_colors"]
+        if all(key in colors for key in ["top_left", "top_right", "bottom_left", "bottom_right"]):
+            gradient_style = f"""
+            background: 
+                radial-gradient(circle at top left, {colors['top_left']} 0%, transparent 50%),
+                radial-gradient(circle at top right, {colors['top_right']} 0%, transparent 50%),
+                radial-gradient(circle at bottom left, {colors['bottom_left']} 0%, transparent 50%),
+                radial-gradient(circle at bottom right, {colors['bottom_right']} 0%, transparent 50%);
+            background-blend-mode: normal;
+            padding: 0;
+            border-radius: 8px;
+            """
+    
+    st.markdown(f"<div class='right-column-content-wrapper' style='{gradient_style}'>", unsafe_allow_html=True)
     st.markdown("<h2 class='right-column-subheader'>💡 Your Personalized Date Night Idea 💡</h2>", unsafe_allow_html=True)
     plan_data = st.session_state.generated_plan_content
     is_initial_placeholder = isinstance(plan_data, dict) and "message" in plan_data and not plan_data.get("error") and not plan_data.get("title")
@@ -617,31 +538,17 @@ with right_column:
                     for tip in tips:
                         if tip.strip(): st.markdown(f"<div class='plan-list-item'>{tip}</div>", unsafe_allow_html=True)
                 
+                # Display gradient colors if available
+                if plan_data.get('gradient_colors') and plan_data['gradient_colors'].get('description'):
+                    st.markdown("<p class='plan-section-title'>🎨 Theme Colors:</p>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='plan-description'>{plan_data['gradient_colors']['description']}</div>", unsafe_allow_html=True)
+                
                 if 'detailed_itinerary' not in st.session_state: st.session_state.detailed_itinerary = None
                 
-                # Initialize session state for image if not exists
-                if 'generated_image' not in st.session_state:
-                    st.session_state.generated_image = None
-                
-                # Button container for both buttons
-                col_btn1, col_btn2 = st.columns(2)
-                
-                with col_btn1:
-                    if st.button("📍 Get Detailed Itinerary", type="secondary", use_container_width=True):
-                        with st.spinner("🔍 Searching for real places and creating detailed itinerary..."):
-                            detailed_itinerary_result = generate_detailed_itinerary(api_key_input, selected_model, plan_data) # Renamed variable
-                        st.session_state.detailed_itinerary = detailed_itinerary_result # Use renamed variable
-                
-                with col_btn2:
-                    if st.button("🎨 Generate Visual", type="secondary", use_container_width=True):
-                        with st.spinner("🎨 Creating a visual representation of your date night..."):
-                            image_result = generate_date_night_image(
-                                api_key_input, 
-                                selected_model, 
-                                plan_data, 
-                                st.session_state.detailed_itinerary
-                            )
-                        st.session_state.generated_image = image_result
+                if st.button("📍 Get Detailed Itinerary with Real Places", type="secondary", use_container_width=True):
+                    with st.spinner("🔍 Searching for real places and creating detailed itinerary..."):
+                        detailed_itinerary_result = generate_detailed_itinerary(api_key_input, selected_model, plan_data) # Renamed variable
+                    st.session_state.detailed_itinerary = detailed_itinerary_result # Use renamed variable
 
                 if st.session_state.detailed_itinerary:
                     st.markdown("<p class='plan-section-title'>📍 Detailed Itinerary:</p>", unsafe_allow_html=True)
@@ -679,46 +586,6 @@ with right_column:
                         if itinerary_data.get('special_considerations'):
                             st.markdown("<p class='plan-section-title'>⚠️ Special Considerations:</p>", unsafe_allow_html=True)
                             for consideration in itinerary_data['special_considerations']: st.markdown(f"<div class='plan-list-item'>{consideration}</div>", unsafe_allow_html=True)
-                
-                # Display generated image description
-                if st.session_state.generated_image:
-                    st.markdown("<p class='plan-section-title'>🎨 Visual Representation:</p>", unsafe_allow_html=True)
-                    
-                    image_data = st.session_state.generated_image
-                    if "error" in image_data:
-                        st.markdown(f"<div class='plan-error-message'>{image_data['error']}</div>", unsafe_allow_html=True)
-                    else:
-                        # Display the rich visual description
-                        st.markdown(f"<div class='plan-description'><b>Visual Description:</b></div>", unsafe_allow_html=True)
-                        st.markdown(f"<div class='plan-description' style='background-color: #262B34; padding: 15px; border-radius: 8px; margin: 10px 0;'>{image_data.get('description', 'No description available')}</div>", unsafe_allow_html=True)
-                        
-                        # Display visual elements
-                        if image_data.get('visual_elements'):
-                            st.markdown(f"<div class='plan-description'><b>Key Visual Elements:</b></div>", unsafe_allow_html=True)
-                            elements_html = "<div class='plan-description' style='margin: 10px 0;'>"
-                            for element in image_data['visual_elements']:
-                                elements_html += f"<span style='background-color: #333A44; padding: 5px 10px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 5px;'>{element}</span>"
-                            elements_html += "</div>"
-                            st.markdown(elements_html, unsafe_allow_html=True)
-                        
-                        # Display style guide
-                        if image_data.get('style_guide'):
-                            st.markdown(f"<div class='plan-description'><b>Style Guide:</b> {image_data['style_guide']}</div>", unsafe_allow_html=True)
-                        
-                        # Display concise generation prompt
-                        if image_data.get('generation_prompt'):
-                            st.markdown(f"<div class='plan-description'><b>Image Generation Prompt:</b></div>", unsafe_allow_html=True)
-                            st.markdown(f"<div class='plan-description' style='background-color: #1A1E26; padding: 10px; border-radius: 6px; margin: 5px 0; font-family: monospace; font-size: 0.9em;'>{image_data['generation_prompt']}</div>", unsafe_allow_html=True)
-                        
-                        # Display note about actual image generation
-                        st.markdown("<div class='plan-description' style='font-style: italic; color: #A0A7B3; margin-top: 15px; padding: 10px; background-color: #1A1E26; border-radius: 6px;'>", unsafe_allow_html=True)
-                        st.markdown("💡 <b>How to use this:</b> Copy the image generation prompt above and paste it into an AI image generator like:", unsafe_allow_html=True)
-                        st.markdown("• DALL-E 3 (via ChatGPT Plus or Bing Image Creator)<br>• Midjourney<br>• Stable Diffusion<br>• Adobe Firefly", unsafe_allow_html=True)
-                        st.markdown("</div>", unsafe_allow_html=True)
-                        
-                        # Optionally show full details
-                        with st.expander("Show technical details"):
-                            st.json(image_data)
         else:
             st.markdown(f"<p class='plan-description'>{str(plan_data)}</p>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True) # End date-plan-output-container
