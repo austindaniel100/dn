@@ -475,7 +475,7 @@ with left_column:
         selected_theme = st.selectbox("Theme", themes, index=themes.index(st.session_state.theme_value), help="Overall mood or vibe for the date?", key="theme_select")
         st.session_state.theme_value = selected_theme
     with col_theme_lock:
-        theme_locked = st.checkbox("🔒", key="theme_lock", help="Lock this setting from randomization", value=st.session_state.get('theme_lock', False))
+        theme_locked = st.checkbox("🔒", key="theme_lock", help="Lock this setting from randomization")
 
     # Activity Type with lock
     col_activity_input, col_activity_lock = st.columns([0.85, 0.15], gap="small")
@@ -484,7 +484,7 @@ with left_column:
         selected_activity_type = st.selectbox("Activity Type", activity_types, index=activity_types.index(st.session_state.activity_value), help="General kind of activity?", key="activity_select")
         st.session_state.activity_value = selected_activity_type
     with col_activity_lock:
-        activity_locked = st.checkbox("🔒", key="activity_lock", help="Lock this setting from randomization", value=st.session_state.get('activity_lock', False))
+        activity_locked = st.checkbox("🔒", key="activity_lock", help="Lock this setting from randomization")
 
     st.markdown("<p class='left-column-section-title'>Practical Considerations</p>", unsafe_allow_html=True)
 
@@ -498,7 +498,7 @@ with left_column:
         )
         st.session_state.budget_value = actual_budget_dollars_val
     with col_budget_lock:
-        budget_locked = st.checkbox("🔒", key="budget_lock", help="Lock this setting from randomization", value=st.session_state.get('budget_lock', False))
+        budget_locked = st.checkbox("🔒", key="budget_lock", help="Lock this setting from randomization")
 
     # Preparation Time with lock
     col_prep_input, col_prep_lock = st.columns([0.85, 0.15], gap="small")
@@ -510,7 +510,7 @@ with left_column:
         )
         st.session_state.prep_value = selected_prep_time
     with col_prep_lock:
-        prep_locked = st.checkbox("🔒", key="prep_lock", help="Lock this setting from randomization", value=st.session_state.get('prep_lock', False))
+        prep_locked = st.checkbox("🔒", key="prep_lock", help="Lock this setting from randomization")
 
     # Max Activity Duration with lock
     col_duration_input, col_duration_lock = st.columns([0.85, 0.15], gap="small")
@@ -522,7 +522,7 @@ with left_column:
         )
         st.session_state.duration_value = time_budget_hours_direct
     with col_duration_lock:
-        duration_locked = st.checkbox("🔒", key="duration_lock", help="Lock this setting from randomization", value=st.session_state.get('duration_lock', False))
+        duration_locked = st.checkbox("🔒", key="duration_lock", help="Lock this setting from randomization")
 
     st.markdown("<p class='left-column-section-title'>Planning Style & Specifics</p>", unsafe_allow_html=True)
     
@@ -535,7 +535,7 @@ with left_column:
                                          horizontal=True, key="planning_style_toggle")
         st.session_state.planning_value = selected_planning_style
     with col_planning_lock:
-        planning_locked = st.checkbox("🔒", key="planning_lock", help="Lock this setting from randomization", value=st.session_state.get('planning_lock', False))
+        planning_locked = st.checkbox("🔒", key="planning_lock", help="Lock this setting from randomization")
     
     planning_style_prompt_line = ""
     if selected_planning_style == "Planning Together":
@@ -549,13 +549,6 @@ with left_column:
         st.session_state.generated_plan_content = {"message": "Let's plan something amazing! Fill in your preferences and click Generate."}
     
     if st.button("✨ Generate Date Plan ✨", type="primary", use_container_width=True):
-        st.session_state.theme_lock = theme_locked # Persist lock states
-        st.session_state.activity_lock = activity_locked
-        st.session_state.budget_lock = budget_locked
-        st.session_state.prep_lock = prep_locked
-        st.session_state.duration_lock = duration_locked
-        st.session_state.planning_lock = planning_locked
-
         if not api_key_input: st.session_state.generated_plan_content = {"error": "⚠️ Oops! Please enter your Google API Key."}
         elif not selected_model: st.session_state.generated_plan_content = {"error": "⚠️ Please select a Gemini model."}
         else:
