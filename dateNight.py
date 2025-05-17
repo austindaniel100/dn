@@ -314,6 +314,15 @@ st.markdown("""
         div[data-testid="stButton"]:has(button:contains("🎲")) > button:hover {
             background-color: #B47CC4 !important;
         }
+        
+        /* Separator styling */
+        .plan-separator {
+            margin: 2.5rem 0;
+            border: none;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #FFD700 20%, #FFD700 80%, transparent);
+            opacity: 0.5;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -469,7 +478,14 @@ with left_column:
                     planning_style_prompt_line
                 )
             st.session_state.generated_plan_content = plan_output
-            st.session_state.detailed_itinerary = None # Reset detailed itinerary
+            
+            # Automatically generate detailed itinerary if plan generation succeeded
+            if isinstance(plan_output, dict) and "title" in plan_output:
+                with st.spinner("🔍 Creating detailed itinerary with real places..."):
+                    detailed_itinerary_result = generate_detailed_itinerary(api_key_input, selected_model, plan_output)
+                st.session_state.detailed_itinerary = detailed_itinerary_result
+            else:
+                st.session_state.detailed_itinerary = None
 
 with right_column:
     # Check if we have gradient colors in the plan data
@@ -543,16 +559,12 @@ with right_column:
                     st.markdown("<p class='plan-section-title'>🎨 Theme Colors:</p>", unsafe_allow_html=True)
                     st.markdown(f"<div class='plan-description'>{plan_data['gradient_colors']['description']}</div>", unsafe_allow_html=True)
                 
-                if 'detailed_itinerary' not in st.session_state: st.session_state.detailed_itinerary = None
-                
-                if st.button("📍 Get Detailed Itinerary with Real Places", type="secondary", use_container_width=True):
-                    with st.spinner("🔍 Searching for real places and creating detailed itinerary..."):
-                        detailed_itinerary_result = generate_detailed_itinerary(api_key_input, selected_model, plan_data) # Renamed variable
-                    st.session_state.detailed_itinerary = detailed_itinerary_result # Use renamed variable
-
-                if st.session_state.detailed_itinerary:
-                    st.markdown("<p class='plan-section-title'>📍 Detailed Itinerary:</p>", unsafe_allow_html=True)
-                    itinerary_data = st.session_state.detailed_itinerary # Renamed variable
+                # Add a visual separator before detailed itinerary
+                if st.session_state.get('detailed_itinerary'):
+                    st.markdown("<hr class='plan-separator'>", unsafe_allow_html=True)
+                    st.markdown("<p class='plan-section-title' style='font-size: 1.4em; text-align: center; color: #FFD700; margin-bottom: 1.5rem;'>📍 Detailed Itinerary with Real Places</p>", unsafe_allow_html=True)
+                    
+                    itinerary_data = st.session_state.detailed_itinerary
                     if "error" in itinerary_data:
                         st.markdown(f"<div class='plan-error-message'>{itinerary_data['error']}</div>", unsafe_allow_html=True)
                     else:
