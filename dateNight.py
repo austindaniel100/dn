@@ -154,12 +154,9 @@ def generate_date_plan_with_gemini(api_key, selected_model_name,
           "time_budget_hours": {time_budget_hours},
           "planning_style": "{actual_planning_style_for_json}",
           "model_used": "{selected_model_name}",
-          "gradient_colors": {{
-            "top_left": "[HEX color code]",
-            "top_right": "[HEX color code]",
-            "bottom_left": "[HEX color code]",
-            "bottom_right": "[HEX color code]",
-            "description": "[Brief explanation of why these colors match the date theme]"
+          "emoji_story": {{
+            "story": "[A long string of emojis telling the emotional journey of the date - should be 20-40 emojis that capture the progression, emotions, activities, and moments]",
+            "description": "[Brief explanation of what the emoji story represents]"
           }},
           "plan_details": {{
             "step_1_title": "[Concise title for Step 1]",
@@ -175,12 +172,18 @@ def generate_date_plan_with_gemini(api_key, selected_model_name,
           ]
         }}
 
-        For gradient_colors, choose 4 HEX color codes that create a beautiful gradient matching the theme and mood of the date.
-        For example:
-        - Romantic theme: soft pinks, purples, and warm tones
-        - Adventure theme: vibrant blues, greens, and oranges
-        - Chill theme: soft blues, lavenders, and neutral tones
-        - Mysterious theme: deep purples, blacks, and midnight blues
+        For emoji_story, create a sequence of 20-40 emojis that tells the emotional journey of this date night.
+        The emojis should represent:
+        - The initial mood and anticipation
+        - Getting ready and excitement
+        - Meeting or starting the date
+        - The activities and experiences
+        - Food and drinks (if applicable)  
+        - Emotional highs and intimate moments
+        - The progression through the evening
+        - The ending and aftermath
+        
+        Make it like a mini emotional movie told only through emojis. Be creative and capture the essence of the date theme.
         
         Ensure all string values within the JSON are extremely concise and to the point. Brevity is key.
         If a time budget is provided, suggest activities that fit within that duration.
@@ -329,6 +332,27 @@ st.markdown("""
             height: 2px;
             background: linear-gradient(to right, transparent, #FFD700 20%, #FFD700 80%, transparent);
             opacity: 0.5;
+        }
+        
+        /* Emoji story container */
+        .emoji-story-container {
+            font-size: 2em;
+            line-height: 1.5;
+            text-align: center;
+            padding: 1.5rem;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            margin: 1.5rem 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            word-wrap: break-word;
+            letter-spacing: 0.05em;
+        }
+        
+        .emoji-story-description {
+            text-align: center;
+            font-style: italic;
+            color: #A9D5FF;
+            margin-top: 1rem;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -506,23 +530,7 @@ with left_column:
             st.session_state.should_generate_itinerary = isinstance(plan_output, dict) and "title" in plan_output
 
 with right_column:
-    # Check if we have gradient colors in the plan data
-    gradient_style = ""
-    if isinstance(st.session_state.generated_plan_content, dict) and "gradient_colors" in st.session_state.generated_plan_content:
-        colors = st.session_state.generated_plan_content["gradient_colors"]
-        if all(key in colors for key in ["top_left", "top_right", "bottom_left", "bottom_right"]):
-            gradient_style = f"""
-            background: 
-                radial-gradient(circle at top left, {colors['top_left']} 0%, transparent 50%),
-                radial-gradient(circle at top right, {colors['top_right']} 0%, transparent 50%),
-                radial-gradient(circle at bottom left, {colors['bottom_left']} 0%, transparent 50%),
-                radial-gradient(circle at bottom right, {colors['bottom_right']} 0%, transparent 50%);
-            background-blend-mode: normal;
-            padding: 0;
-            border-radius: 8px;
-            """
-    
-    st.markdown(f"<div class='right-column-content-wrapper' style='{gradient_style}'>", unsafe_allow_html=True)
+    st.markdown("<div class='right-column-content-wrapper'>", unsafe_allow_html=True)
     st.markdown("<h2 class='right-column-subheader'>💡 Your Personalized Date Night Idea 💡</h2>", unsafe_allow_html=True)
     plan_data = st.session_state.generated_plan_content
     is_initial_placeholder = isinstance(plan_data, dict) and "message" in plan_data and not plan_data.get("error") and not plan_data.get("title")
@@ -572,10 +580,17 @@ with right_column:
                     for tip in tips:
                         if tip.strip(): st.markdown(f"<div class='plan-list-item'>{tip}</div>", unsafe_allow_html=True)
                 
-                # Display gradient colors if available
-                if plan_data.get('gradient_colors') and plan_data['gradient_colors'].get('description'):
-                    st.markdown("<p class='plan-section-title'>🎨 Theme Colors:</p>", unsafe_allow_html=True)
-                    st.markdown(f"<div class='plan-description'>{plan_data['gradient_colors']['description']}</div>", unsafe_allow_html=True)
+                # Display emoji story if available
+                if plan_data.get('emoji_story'):
+                    st.markdown("<p class='plan-section-title'>💫 Your Date Night Journey in Emojis:</p>", unsafe_allow_html=True)
+                    
+                    emoji_story = plan_data['emoji_story'].get('story', '')
+                    if emoji_story:
+                        st.markdown(f"<div class='emoji-story-container'>{emoji_story}</div>", unsafe_allow_html=True)
+                    
+                    emoji_description = plan_data['emoji_story'].get('description', '')
+                    if emoji_description:
+                        st.markdown(f"<div class='emoji-story-description'>{emoji_description}</div>", unsafe_allow_html=True)
                 
                 # Generate detailed itinerary if needed
                 if st.session_state.get('should_generate_itinerary', False) and not st.session_state.get('detailed_itinerary'):
