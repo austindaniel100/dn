@@ -10,6 +10,98 @@ load_dotenv()
 
 # --- Helper Functions ---
 
+def generate_detailed_itinerary(api_key, selected_model_name, original_plan):
+    """Generate a detailed itinerary based on the original plan"""
+    if not api_key:
+        return {"error": "Google API Key is missing. Please enter it in the sidebar."}
+    if not selected_model_name:
+        return {"error": "Please select a Gemini model in the sidebar."}
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(model_name=selected_model_name)
+        
+        prompt = f"""
+        You are a creative and helpful date night planning assistant. 
+        You have already provided a date plan, and now the user wants a MORE DETAILED itinerary with ACTUAL places and activities.
+        
+        Original Plan Details:
+        {json.dumps(original_plan, indent=2)}
+        
+        IMPORTANT: Now create a DETAILED ITINERARY with:
+        1. Specific timings for each activity
+        2. ACTUAL restaurant names, venues, or activity locations (search the internet for real places)
+        3. Addresses when possible
+        4. Reservation requirements or booking links if applicable
+        5. Backup options for each activity
+        6. Driving/transportation time between locations
+        7. Specific menu recommendations if applicable
+        8. Parking information if relevant
+        
+        If the user hasn't specified a location, suggest activities that could work in any major city, or ask them to specify their location.
+        
+        **IMPORTANT INSTRUCTION:**
+        Your response MUST be a single, valid JSON object. Do NOT include any text outside of this JSON object.
+        The JSON object should follow this structure:
+        
+        {{
+          "title": "{original_plan.get('title', 'Date Night')} - Detailed Itinerary",
+          "location_note": "[If no specific location was mentioned, note this and suggest general options]",
+          "timeline": [
+            {{
+              "time": "6:00 PM",
+              "activity": "Main Activity Name",
+              "location": "Specific Venue Name",
+              "address": "123 Main St, City, State",
+              "details": "Detailed description of what to do here",
+              "booking_required": true/false,
+              "booking_link": "website.com/reservations (if applicable)",
+              "cost_estimate": "$XX per person",
+              "duration": "1.5 hours",
+              "parking": "Street parking available / Valet available / Free lot",
+              "tips": ["Tip 1", "Tip 2"]
+            }}
+          ],
+          "backup_options": [
+            {{
+              "for_activity": "Main Activity Name",
+              "alternative": "Alternative Venue Name",
+              "reason": "Why this is a good backup",
+              "details": "Brief description"
+            }}
+          ],
+          "transportation_notes": "Estimated 15 min drive between venues, consider Uber if drinking",
+          "total_estimated_cost": "$XXX for two people",
+          "special_considerations": ["Consideration 1", "Consideration 2"],
+          "weather_contingency": "If weather is bad, consider..."
+        }}
+        
+        Make sure to search for REAL places and provide ACTUAL recommendations, not generic placeholders.
+        """
+        
+        response = model.generate_content(prompt)
+        raw_text_response = ""
+        if hasattr(response, 'text'): 
+            raw_text_response = response.text
+        elif isinstance(response, str): 
+            raw_text_response = response
+        elif hasattr(response, 'parts') and response.parts: 
+            raw_text_response = "".join(part.text for part in response.parts if hasattr(part, 'text'))
+        else: 
+            return {"error": f"Unexpected response format from API: {str(response)}"}
+        
+        if raw_text_response.strip().startswith("```json"):
+            raw_text_response = raw_text_response.strip()[7:]
+            if raw_text_response.strip().endswith("```"): 
+                raw_text_response = raw_text_response.strip()[:-3]
+        
+        try:
+            return json.loads(raw_text_response.strip())
+        except json.JSONDecodeError as e:
+            error_detail = f"Failed to parse JSON. Error: {e}. Raw (first 500 chars): '{raw_text_response[:500]}...'"
+            return {"error": error_detail}
+    except Exception as e: 
+        return {"error": f"An error occurred: {e}"}
+
 def generate_date_plan_with_gemini(api_key, selected_model_name,
                                    theme, activity_type,
                                    budget_dollars, prep_time_text, user_input,
@@ -142,6 +234,27 @@ st.markdown("""
         .plan-list-item {font-size: 1em; color: #CACFD2; margin-left: 1.5em; margin-bottom: 0.4em; list-style-type: "✨ ";}
         .plan-error-message {color: #FF6B6B; font-weight: 500; background-color: rgba(255, 107, 107, 0.1); padding: 10px; border-radius: 6px; border-left: 4px solid #FF6B6B;}
         .plan-initial-message {color: #A9D5FF; font-style: italic; text-align: center; padding-top: 1rem; padding-bottom: 1rem; font-size: 0.95em;}
+        div[data-testid="stButton"] > button[type="button"]:not(:first-child) {
+            background-color: #4A90E2; 
+            color: white; 
+            border: none; 
+            padding: 0.5rem 1.2rem; 
+            border-radius: 6px; 
+            font-weight: 500; 
+            font-size: 0.95rem; 
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        div[data-testid="stButton"] > button[type="button"]:not(:first-child):hover {
+            background-color: #5BA3F5; 
+            transform: translateY(-1px);
+        }
+        div[data-testid="stButton"] > button[type="button"]:not(:first-child):active {
+            background-color: #3A7BC8; 
+            transform: translateY(0px);
+        }
+        .plan-description a {color: #4A90E2; text-decoration: none;}
+        .plan-description a:hover {color: #5BA3F5; text-decoration: underline;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -228,6 +341,8 @@ with left_column:
                     planning_style_prompt_line
                 )
             st.session_state.generated_plan_content = plan_output
+            # Reset detailed itinerary when generating a new plan
+            st.session_state.detailed_itinerary = None
 
 with right_column:
     st.markdown("<div class='right-column-content-wrapper'>", unsafe_allow_html=True)
@@ -283,6 +398,76 @@ with right_column:
                     st.markdown("<p class='plan-section-title'>💡 Pro Tips & Considerations:</p>", unsafe_allow_html=True)
                     for tip in tips:
                         if tip.strip(): st.markdown(f"<div class='plan-list-item'>{tip}</div>", unsafe_allow_html=True)
+                
+                # Add detailed itinerary button
+                if 'detailed_itinerary' not in st.session_state:
+                    st.session_state.detailed_itinerary = None
+                
+                if st.button("📍 Get Detailed Itinerary with Real Places", type="secondary", use_container_width=True):
+                    with st.spinner("🔍 Searching for real places and creating detailed itinerary..."):
+                        detailed_itinerary = generate_detailed_itinerary(
+                            api_key_input, 
+                            selected_model,
+                            plan_data
+                        )
+                    st.session_state.detailed_itinerary = detailed_itinerary
+                
+                # Display detailed itinerary if it exists
+                if st.session_state.detailed_itinerary:
+                    st.markdown("<p class='plan-section-title'>📍 Detailed Itinerary:</p>", unsafe_allow_html=True)
+                    
+                    itinerary = st.session_state.detailed_itinerary
+                    if "error" in itinerary:
+                        st.markdown(f"<div class='plan-error-message'>{itinerary['error']}</div>", unsafe_allow_html=True)
+                    else:
+                        # Location note
+                        if itinerary.get('location_note'):
+                            st.markdown(f"<div class='plan-description'><b>Note:</b> {itinerary['location_note']}</div>", unsafe_allow_html=True)
+                        
+                        # Timeline
+                        st.markdown("<p class='plan-section-title'>⏰ Timeline:</p>", unsafe_allow_html=True)
+                        for item in itinerary.get('timeline', []):
+                            st.markdown(f"<div class='plan-step-title'>{item.get('time', 'TBD')} - {item.get('activity', 'Activity')}</div>", unsafe_allow_html=True)
+                            st.markdown(f"<div class='plan-description'><b>📍 Location:</b> {item.get('location', 'TBD')}</div>", unsafe_allow_html=True)
+                            if item.get('address'):
+                                st.markdown(f"<div class='plan-description'><b>🏠 Address:</b> {item.get('address')}</div>", unsafe_allow_html=True)
+                            st.markdown(f"<div class='plan-description'>{item.get('details', '')}</div>", unsafe_allow_html=True)
+                            if item.get('booking_required'):
+                                booking_text = f"<b>📅 Booking Required</b>"
+                                if item.get('booking_link'):
+                                    booking_text += f" - <a href='{item['booking_link']}' target='_blank'>Make Reservation</a>"
+                                st.markdown(f"<div class='plan-description'>{booking_text}</div>", unsafe_allow_html=True)
+                            if item.get('cost_estimate'):
+                                st.markdown(f"<div class='plan-description'><b>💰 Cost:</b> {item['cost_estimate']}</div>", unsafe_allow_html=True)
+                            if item.get('parking'):
+                                st.markdown(f"<div class='plan-description'><b>🚗 Parking:</b> {item['parking']}</div>", unsafe_allow_html=True)
+                            if item.get('tips'):
+                                for tip in item['tips']:
+                                    st.markdown(f"<div class='plan-list-item'>{tip}</div>", unsafe_allow_html=True)
+                            st.markdown("<br>", unsafe_allow_html=True)
+                        
+                        # Backup options
+                        if itinerary.get('backup_options'):
+                            st.markdown("<p class='plan-section-title'>🔄 Backup Options:</p>", unsafe_allow_html=True)
+                            for backup in itinerary['backup_options']:
+                                st.markdown(f"<div class='plan-step-title'>Alternative for {backup.get('for_activity', 'Activity')}: {backup.get('alternative', 'TBD')}</div>", unsafe_allow_html=True)
+                                st.markdown(f"<div class='plan-description'><b>Why:</b> {backup.get('reason', '')}</div>", unsafe_allow_html=True)
+                                st.markdown(f"<div class='plan-description'>{backup.get('details', '')}</div>", unsafe_allow_html=True)
+                        
+                        # Additional info
+                        if itinerary.get('transportation_notes'):
+                            st.markdown(f"<div class='plan-description'><b>🚕 Transportation:</b> {itinerary['transportation_notes']}</div>", unsafe_allow_html=True)
+                        
+                        if itinerary.get('total_estimated_cost'):
+                            st.markdown(f"<div class='plan-description'><b>💵 Total Estimated Cost:</b> {itinerary['total_estimated_cost']}</div>", unsafe_allow_html=True)
+                        
+                        if itinerary.get('weather_contingency'):
+                            st.markdown(f"<div class='plan-description'><b>🌧️ Weather Contingency:</b> {itinerary['weather_contingency']}</div>", unsafe_allow_html=True)
+                        
+                        if itinerary.get('special_considerations'):
+                            st.markdown("<p class='plan-section-title'>⚠️ Special Considerations:</p>", unsafe_allow_html=True)
+                            for consideration in itinerary['special_considerations']:
+                                st.markdown(f"<div class='plan-list-item'>{consideration}</div>", unsafe_allow_html=True)
         else:
             st.markdown(f"<p class='plan-description'>{str(plan_data)}</p>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
