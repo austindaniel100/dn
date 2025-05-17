@@ -478,14 +478,8 @@ with left_column:
                     planning_style_prompt_line
                 )
             st.session_state.generated_plan_content = plan_output
-            
-            # Automatically generate detailed itinerary if plan generation succeeded
-            if isinstance(plan_output, dict) and "title" in plan_output:
-                with st.spinner("🔍 Creating detailed itinerary with real places..."):
-                    detailed_itinerary_result = generate_detailed_itinerary(api_key_input, selected_model, plan_output)
-                st.session_state.detailed_itinerary = detailed_itinerary_result
-            else:
-                st.session_state.detailed_itinerary = None
+            st.session_state.detailed_itinerary = None  # Clear any existing itinerary
+            st.session_state.should_generate_itinerary = isinstance(plan_output, dict) and "title" in plan_output
 
 with right_column:
     # Check if we have gradient colors in the plan data
@@ -558,6 +552,14 @@ with right_column:
                 if plan_data.get('gradient_colors') and plan_data['gradient_colors'].get('description'):
                     st.markdown("<p class='plan-section-title'>🎨 Theme Colors:</p>", unsafe_allow_html=True)
                     st.markdown(f"<div class='plan-description'>{plan_data['gradient_colors']['description']}</div>", unsafe_allow_html=True)
+                
+                # Generate detailed itinerary if needed
+                if st.session_state.get('should_generate_itinerary', False) and not st.session_state.get('detailed_itinerary'):
+                    with st.spinner("🔍 Creating detailed itinerary with real places..."):
+                        detailed_itinerary_result = generate_detailed_itinerary(api_key_input, selected_model, plan_data)
+                        st.session_state.detailed_itinerary = detailed_itinerary_result
+                        st.session_state.should_generate_itinerary = False
+                        st.rerun()
                 
                 # Add a visual separator before detailed itinerary
                 if st.session_state.get('detailed_itinerary'):
