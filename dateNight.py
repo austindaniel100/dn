@@ -188,15 +188,19 @@ with left_column:
     selected_activity_type = st.selectbox("Activity Type", activity_types, help="General kind of activity?")
 
     st.markdown("<p class='left-column-section-title'>Practical Considerations</p>", unsafe_allow_html=True)
+    # Budget Level: Displays 1.00 to 5.00 (raw 50-250, scaled by /50.0)
     raw_budget_val = st.slider("Budget Level", min_value=50, max_value=250, value=100, step=1, help="1 (very tight) to 5 (splurge), precision 0.02")
     current_budget_level_scaled = raw_budget_val / 50.0
     st.caption(f"Selected: {current_budget_level_scaled:.2f}/5")
 
+    # Preparation Time: Displays 1.00 to 5.00 (raw 50-250, scaled by /50.0)
     raw_prep_time_val = st.slider("Preparation Time", min_value=50, max_value=250, value=100, step=1, help="1 (spontaneous) to 5 (elaborate), precision 0.02")
     current_prep_time_level_scaled = raw_prep_time_val / 50.0
     st.caption(f"Selected: {current_prep_time_level_scaled:.2f}/5")
 
-    raw_time_budget_val = st.slider("Max Activity Duration (Hours)", min_value=25, max_value=400, value=150, step=1, help="Set the maximum duration, precision 0.02 hours.")
+    # Max Activity Duration: Displays 1.00 to 8.00 hours (raw 50-400, scaled by /50.0)
+    # Changed min_value from 25 to 50
+    raw_time_budget_val = st.slider("Max Activity Duration (Hours)", min_value=50, max_value=400, value=150, step=1, help="Set the maximum duration (1.00 to 8.00 hours), precision 0.02 hours.")
     time_budget_hours_val = raw_time_budget_val / 50.0
     st.caption(f"Selected: {time_budget_hours_val:.2f} hours")
 
