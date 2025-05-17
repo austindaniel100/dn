@@ -9,16 +9,27 @@ import math # For rounding
 load_dotenv()
 
 # --- Helper Functions ---
-def map_budget_value_to_description(value_float):
-    value = round(value_float)
-    if value == 1: return "Extremely tight, focus on free or DIY options, minimal to no spending."
-    if value == 2: return "Very low budget, some minimal spending is acceptable."
-    if value == 3: return "Moderate budget, allows for a casual outing or some purchases."
-    if value == 4: return "Generous budget, can afford a nice dinner out or event tickets."
-    return "Splurge / Special Occasion, high budget, willing to spend significantly."
 
+# NEW: Helper to map dollar budget to a 1-5 descriptive level
+def get_budget_level_from_dollars(dollar_value):
+    if dollar_value <= 20: return 1    # Up to $20
+    elif dollar_value <= 50: return 2  # $21 - $50
+    elif dollar_value <= 100: return 3 # $51 - $100
+    elif dollar_value <= 150: return 4 # $101 - $150
+    else: return 5                     # $151 - $200
+
+# Updated to take the direct dollar value
+def map_budget_value_to_description(dollar_value_int):
+    level = get_budget_level_from_dollars(dollar_value_int) # Get the 1-5 level
+    if level == 1: return "Extremely tight, focus on free or DIY options, minimal to no spending (up to ~$20)."
+    if level == 2: return "Very low budget, some minimal spending is acceptable (~$21-$50)."
+    if level == 3: return "Moderate budget, allows for a casual outing or some purchases (~$51-$100)."
+    if level == 4: return "Generous budget, can afford a nice dinner out or event tickets (~$101-$150)."
+    return "Splurge / Special Occasion, high budget, willing to spend significantly (~$151-$200)."
+
+# This function now takes a direct 1-5 float value
 def map_prep_time_value_to_description(value_float):
-    value = round(value_float)
+    value = round(value_float) # Still round for discrete categories
     if value == 1: return "Almost no preparation needed (under 30 mins), very spontaneous."
     if value == 2: return "Quick preparation (30 mins to 1 hour)."
     if value == 3: return "Moderate preparation (1-2 hours)."
@@ -28,8 +39,11 @@ def map_prep_time_value_to_description(value_float):
 def generate_date_plan_with_gemini(api_key, selected_model_name,
                                    theme, activity_type,
                                    budget_desc, prep_time_desc, user_input,
-                                   current_budget_level, current_prep_time_level,
-                                   time_budget_hours, planning_style_prompt_line):
+                                   actual_budget_dollars, # NEW: pass actual dollars
+                                   current_budget_level_api, # This is the 1-5 scale for API
+                                   current_prep_time_level, # This is the direct 1-5 float
+                                   time_budget_hours, # This is the direct 1-8 float
+                                   planning_style_prompt_line):
     if not api_key:
         return {"error": "Google API Key is missing. Please enter it in the sidebar."}
     if not selected_model_name:
@@ -45,10 +59,8 @@ def generate_date_plan_with_gemini(api_key, selected_model_name,
             parts = planning_style_prompt_line.split(': ', 1)
             if len(parts) > 1:
                 actual_planning_style_for_json = parts[1].strip()
-            # If no ": " is found, or if it's at the very end, this will keep "Not specified"
-            # or you could use parts[0] if you want the whole string in that case.
-            # For now, this logic is fine for extracting text after ": ".
 
+        # Note: current_budget_level_api is the 1-5 scale for the prompt
         prompt = f"""
         You are a creative and helpful date night planning assistant.
         Your goal is to generate a fun and suitable date night plan based on the user's preferences.
@@ -58,7 +70,7 @@ def generate_date_plan_with_gemini(api_key, selected_model_name,
         User Preferences:
         - Theme: {theme}
         - Activity Type: {activity_type}
-        - Budget Consideration: "{budget_desc}" (Approx. level: {current_budget_level:.2f}/5)
+        - Budget Consideration: "${actual_budget_dollars}" which is "{budget_desc}" (Approx. level: {current_budget_level_api:.2f}/5)
         - Time to Prepare Consideration: "{prep_time_desc}" (Approx. level: {current_prep_time_level:.2f}/5)
         {time_budget_line}
         - User's specific suggestions or restrictions: "{user_input if user_input else 'None'}"
@@ -72,7 +84,8 @@ def generate_date_plan_with_gemini(api_key, selected_model_name,
           "title": "[Catchy Date Night Title - concise, max 5-7 words]",
           "theme": "{theme}",
           "activity_type": "{activity_type}",
-          "budget_level": {current_budget_level:.2f},
+          "budget_dollars": {actual_budget_dollars},
+          "budget_level_approx": {current_budget_level_api:.2f},
           "budget_description": "{budget_desc}",
           "prep_time_level": {current_prep_time_level:.2f},
           "prep_time_description": "{prep_time_desc}",
@@ -188,24 +201,43 @@ with left_column:
     selected_activity_type = st.selectbox("Activity Type", activity_types, help="General kind of activity?")
 
     st.markdown("<p class='left-column-section-title'>Practical Considerations</p>", unsafe_allow_html=True)
-    # Budget Level: Displays 1.00 to 5.00 (raw 50-250, scaled by /50.0)
-    raw_budget_val = st.slider("Budget Level", min_value=50, max_value=250, value=100, step=1, help="1 (very tight) to 5 (splurge), precision 0.02")
-    current_budget_level_scaled = raw_budget_val / 50.0
-    st.caption(f"Selected: {current_budget_level_scaled:.2f}/5")
 
-    # Preparation Time: Displays 1.00 to 5.00 (raw 50-250, scaled by /50.0)
-    raw_prep_time_val = st.slider("Preparation Time", min_value=50, max_value=250, value=100, step=1, help="1 (spontaneous) to 5 (elaborate), precision 0.02")
-    current_prep_time_level_scaled = raw_prep_time_val / 50.0
-    st.caption(f"Selected: {current_prep_time_level_scaled:.2f}/5")
+    # Budget Level: $1 to $200
+    # The slider will now directly show dollar amounts.
+    actual_budget_dollars_val = st.slider(
+        "Budget",
+        min_value=1, max_value=200, value=50, step=1, # Integer dollar values
+        format="$%d", # Display as dollars on the slider
+        help="Select your approximate budget for the date ($1 to $200)."
+    )
+    # Get the 1-5 level for API prompt and description mapping
+    current_budget_level_for_api = float(get_budget_level_from_dollars(actual_budget_dollars_val))
+    selected_budget_description = map_budget_value_to_description(actual_budget_dollars_val)
+    st.caption(f"Selected: ${actual_budget_dollars_val} (Approx. Level: {current_budget_level_for_api:.1f}/5)")
 
-    # Max Activity Duration: Displays 1.00 to 8.00 hours (raw 50-400, scaled by /50.0)
-    # Changed min_value from 25 to 50
-    raw_time_budget_val = st.slider("Max Activity Duration (Hours)", min_value=50, max_value=400, value=150, step=1, help="Set the maximum duration (1.00 to 8.00 hours), precision 0.02 hours.")
-    time_budget_hours_val = raw_time_budget_val / 50.0
-    st.caption(f"Selected: {time_budget_hours_val:.2f} hours")
 
-    selected_budget_description = map_budget_value_to_description(current_budget_level_scaled)
-    selected_prep_time_description = map_prep_time_value_to_description(current_prep_time_level_scaled)
+    # Preparation Time: Displays 1.00 to 5.00 directly
+    # The slider returns a float in the range 1.0 to 5.0
+    current_prep_time_level_direct = st.slider(
+        "Preparation Time (Scale 1-5)",
+        min_value=1.0, max_value=5.0, value=2.5, step=0.02, # Float values for slider
+        format="%.2f", # Display with 2 decimal places on slider
+        help="1 (spontaneous, <30min) to 5 (elaborate, 4+ hrs). Precision 0.02."
+    )
+    selected_prep_time_description = map_prep_time_value_to_description(current_prep_time_level_direct)
+    st.caption(f"Selected: {current_prep_time_level_direct:.2f}/5")
+
+
+    # Max Activity Duration: Displays 1.00 to 8.00 hours directly
+    # The slider returns a float in the range 1.0 to 8.0
+    time_budget_hours_direct = st.slider(
+        "Max Activity Duration (Hours)",
+        min_value=1.0, max_value=8.0, value=3.0, step=0.02, # Float values for slider
+        format="%.2f hours", # Display with " hours" on slider
+        help="Set the maximum activity duration (1.00 to 8.00 hours). Precision 0.02."
+    )
+    st.caption(f"Selected: {time_budget_hours_direct:.2f} hours")
+
 
     st.markdown("<p class='left-column-section-title'>Planning Style & Specifics</p>", unsafe_allow_html=True)
     planning_style_options = ["Planning Together", "Planning For Her"]
@@ -232,9 +264,10 @@ with left_column:
                     selected_theme, selected_activity_type,
                     selected_budget_description, selected_prep_time_description,
                     user_custom_input,
-                    current_budget_level_scaled, 
-                    current_prep_time_level_scaled, 
-                    time_budget_hours_val,
+                    actual_budget_dollars_val, # Pass the direct dollar amount
+                    current_budget_level_for_api, # Pass the derived 1-5 budget level
+                    current_prep_time_level_direct, # Pass the direct 1-5 prep time
+                    time_budget_hours_direct, # Pass the direct 1-8 hours
                     planning_style_prompt_line
                 )
             st.session_state.generated_plan_content = plan_output
@@ -254,24 +287,30 @@ with right_column:
                 st.markdown(f"<div class='plan-error-message'>{plan_data['error']}</div>", unsafe_allow_html=True)
             elif "title" in plan_data:
                 st.markdown(f"<p class='plan-title'>{plan_data.get('title', 'N/A')}</p>", unsafe_allow_html=True)
+                
+                # Updated meta info display
+                budget_display = f"<b>Budget:</b> ${plan_data.get('budget_dollars', 'N/A')} ({plan_data.get('budget_description', 'N/A')})"
+                if 'budget_level_approx' in plan_data: # For backward compatibility if old JSON structure is somehow cached
+                     budget_display = f"<b>Budget:</b> ${plan_data.get('budget_dollars', 'N/A')} (Approx. Level {plan_data.get('budget_level_approx', 'N/A')}/5 - {plan_data.get('budget_description', 'N/A')})"
+
+
                 meta_parts = [
                     f"<b>Theme:</b> {plan_data.get('theme', 'N/A')}",
                     f"<b>Activity:</b> {plan_data.get('activity_type', 'N/A')}",
-                    f"<b>Budget:</b> {plan_data.get('budget_level', 'N/A')}/5 ({plan_data.get('budget_description', 'N/A')})",
+                    budget_display,
                     f"<b>Prep Time:</b> {plan_data.get('prep_time_level', 'N/A')}/5 ({plan_data.get('prep_time_description', 'N/A')})",
                 ]
                 if plan_data.get('time_budget_hours') != "Not specified":
                     meta_parts.append(f"<b>Max Duration:</b> {plan_data.get('time_budget_hours', 'N/A')}")
-                if plan_data.get('planning_style') != "Not specified" and plan_data.get('planning_style'): # Ensure it's not empty either
-                     meta_parts.append(f"<b>Planning Style:</b> {plan_data.get('planning_style')}") # No 'N/A' needed if it's not "Not specified"
+                if plan_data.get('planning_style') != "Not specified" and plan_data.get('planning_style'):
+                     meta_parts.append(f"<b>Planning Style:</b> {plan_data.get('planning_style')}")
                 
                 meta_html = "<div class='plan-meta-info'>"
                 for i in range(0, len(meta_parts), 2):
-                    line_parts = [part for part in meta_parts[i:i+2] if part] # Filter out potential None if a .get() fails without default
+                    line_parts = [part for part in meta_parts[i:i+2] if part]
                     line = " | ".join(line_parts)
-                    if line: # Only add <br> if line is not empty
+                    if line:
                         meta_html += line + "<br>"
-                # Remove last <br> if it exists
                 if meta_html.endswith("<br>"):
                     meta_html = meta_html[:-4]
 
