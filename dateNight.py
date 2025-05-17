@@ -579,7 +579,7 @@ with right_column:
                 
                 # Generate detailed itinerary if needed
                 if st.session_state.get('should_generate_itinerary', False) and not st.session_state.get('detailed_itinerary'):
-                    with st.spinner("🔍 Creating detailed itinerary with real places..."):
+                    with st.spinner("🔍 Creating detailed itinerary..."):
                         detailed_itinerary_result = generate_detailed_itinerary(api_key_input, selected_model, plan_data)
                         st.session_state.detailed_itinerary = detailed_itinerary_result
                         st.session_state.should_generate_itinerary = False
@@ -588,7 +588,7 @@ with right_column:
                 # Add a visual separator before detailed itinerary
                 if st.session_state.get('detailed_itinerary'):
                     st.markdown("<hr class='plan-separator'>", unsafe_allow_html=True)
-                    st.markdown("<p class='plan-section-title' style='font-size: 1.4em; text-align: center; color: #FFD700; margin-bottom: 1.5rem;'>📍 Detailed Itinerary with Real Places</p>", unsafe_allow_html=True)
+                    st.markdown("<p class='plan-section-title' style='font-size: 1.4em; text-align: center; color: #FFD700; margin-bottom: 1.5rem;'>📍 Detailed Itinerary</p>", unsafe_allow_html=True)
                     
                     itinerary_data = st.session_state.detailed_itinerary
                     if "error" in itinerary_data:
