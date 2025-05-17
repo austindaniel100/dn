@@ -9,6 +9,76 @@ import random
 # --- Configuration & Setup ---
 load_dotenv()
 
+# --- Example Date Plans for Surprise Me ---
+example_date_plans = [
+    {
+        "theme": "Romantic ❤️",
+        "activity": "At Home 🏠",
+        "budget": 30,
+        "prep_time": "30 minutes",
+        "duration": 2,
+        "planning_style": "Planning For Her",
+        "city": "Paris",
+        "include_location": True,
+        "custom_input": "Candlelit dinner, soft music, rose petals"
+    },
+    {
+        "theme": "Adventure 🚀",
+        "activity": "Outdoor Adventure 🌳",
+        "budget": 100,
+        "prep_time": "8 hours",
+        "duration": 6,
+        "planning_style": "Planning Together",
+        "city": "Denver",
+        "include_location": True,
+        "custom_input": "Hiking, picnic with a view, sunset watching"
+    },
+    {
+        "theme": "Fun 🎉",
+        "activity": "Out (Casual)🚶",
+        "budget": 60,
+        "prep_time": "2 hours",
+        "duration": 4,
+        "planning_style": "Planning Together",
+        "city": "Austin",
+        "include_location": True,
+        "custom_input": "Live music, food trucks, bar hopping"
+    },
+    {
+        "theme": "Artsy 🎨",
+        "activity": "Creative/DIY 🎨",
+        "budget": 45,
+        "prep_time": "1 day",
+        "duration": 3,
+        "planning_style": "Planning Together",
+        "city": "New York",
+        "include_location": True,
+        "custom_input": "Pottery class, wine and paint, gallery walk"
+    },
+    {
+        "theme": "Foodie 🍲",
+        "activity": "Out (Fancy)👗",
+        "budget": 150,
+        "prep_time": "1 week",
+        "duration": 4,
+        "planning_style": "Planning For Her",
+        "city": "San Francisco",
+        "include_location": True,
+        "custom_input": "Michelin star restaurant tour, wine pairing, dessert bar"
+    },
+    {
+        "theme": "Chill 🧘",
+        "activity": "Relax & Unwind 🛀",
+        "budget": 80,
+        "prep_time": "2 hours",
+        "duration": 3,
+        "planning_style": "Planning Together",
+        "city": "Portland",
+        "include_location": True,
+        "custom_input": "Couple's spa, hot springs, meditation garden"
+    }
+]
+
 # --- Helper Functions ---
 
 def generate_detailed_itinerary(api_key, selected_model_name, original_plan):
@@ -316,13 +386,36 @@ st.markdown("""
                 padding: 0 !important;
             }
         }
+        /* Top button row styling */
+        .element-container:has(div[data-testid="stButton"]:has(button[type="secondary"])) {
+            margin-bottom: 1.5rem !important;
+        }
+        
+        /* Clear button styling */
+        div[data-testid="stButton"]:has(button:contains("🧹")) > button {
+            background-color: #E74C3C !important;
+            margin-bottom: 0 !important;
+        }
+        div[data-testid="stButton"]:has(button:contains("🧹")) > button:hover {
+            background-color: #F66 !important;
+        }
+        
         /* Randomize button styling */
         div[data-testid="stButton"]:has(button:contains("🎲")) > button {
             background-color: #9B59B6 !important;
-            margin-bottom: 1rem !important;
+            margin-bottom: 0 !important;
         }
         div[data-testid="stButton"]:has(button:contains("🎲")) > button:hover {
             background-color: #B47CC4 !important;
+        }
+        
+        /* Surprise Me button styling */
+        div[data-testid="stButton"]:has(button:contains("🎁")) > button {
+            background-color: #2ECC71 !important;
+            margin-bottom: 0 !important;
+        }
+        div[data-testid="stButton"]:has(button:contains("🎁")) > button:hover {
+            background-color: #3DDC84 !important;
         }
         
         /* Separator styling */
@@ -359,9 +452,29 @@ st.markdown("""
 
 st.markdown("<h1>💖 Date Night AI 🥂</h1>", unsafe_allow_html=True)
 
-# Randomize button centered at the top
-col_rand1, col_rand2, col_rand3 = st.columns([1, 1, 1]) # Renamed to avoid conflict
-with col_rand2:
+# Button row at the top
+col_btn1, col_btn2, col_btn3, col_btn4 = st.columns([1, 1, 1, 1])
+with col_btn1:
+    if st.button("🧹 Clear All Inputs", type="secondary", use_container_width=True):
+        # Reset all inputs to defaults
+        st.session_state.theme_value = "Romantic ❤️"
+        st.session_state.activity_value = "At Home 🏠"
+        st.session_state.budget_value = 50
+        st.session_state.prep_value = "2 hours"
+        st.session_state.duration_value = 3
+        st.session_state.planning_value = "Planning Together"
+        st.session_state.city_input = ""
+        st.session_state.include_location = False
+        st.session_state.user_custom_input_area_v2 = ""
+        
+        # Also clear any generated content
+        st.session_state.generated_plan_content = {"message": "Let's plan something amazing! Fill in your preferences and click Generate."}
+        st.session_state.detailed_itinerary = None
+        st.session_state.should_generate_itinerary = False
+        
+        st.rerun()
+
+with col_btn2:
     if st.button("🎲 Randomize Settings", type="secondary", use_container_width=True):
         # Randomize theme if not locked
         if not st.session_state.get('theme_lock', False):
@@ -390,6 +503,35 @@ with col_rand2:
         if not st.session_state.get('planning_lock', False):
             planning_style_options_list = ["Planning Together", "Planning For Her"]
             st.session_state.planning_value = random.choice(planning_style_options_list)
+        
+        st.rerun()
+
+with col_btn3:
+    if st.button("🎁 Surprise Me!", type="secondary", use_container_width=True):
+        # Randomly select an example plan
+        surprise_plan = random.choice(example_date_plans)
+        
+        # Populate session state with the selected values
+        st.session_state.theme_value = surprise_plan["theme"]
+        st.session_state.activity_value = surprise_plan["activity"]
+        st.session_state.budget_value = surprise_plan["budget"]
+        st.session_state.prep_value = surprise_plan["prep_time"]
+        st.session_state.duration_value = surprise_plan["duration"]
+        st.session_state.planning_value = surprise_plan["planning_style"]
+        st.session_state.city_input = surprise_plan["city"]
+        st.session_state.include_location = surprise_plan["include_location"]
+        st.session_state.user_custom_input_area_v2 = surprise_plan["custom_input"]
+        
+        # Unlock all fields so they can be populated
+        st.session_state.theme_lock = False
+        st.session_state.activity_lock = False
+        st.session_state.budget_lock = False
+        st.session_state.prep_lock = False
+        st.session_state.duration_lock = False
+        st.session_state.planning_lock = False
+        
+        # Set flag to auto-generate after rerun
+        st.session_state.auto_generate = True
         
         st.rerun()
 
@@ -527,6 +669,25 @@ with left_column:
                 )
             st.session_state.generated_plan_content = plan_output
             st.session_state.detailed_itinerary = None  # Clear any existing itinerary
+            st.session_state.should_generate_itinerary = isinstance(plan_output, dict) and "title" in plan_output
+
+    # Check if auto-generation was triggered by Surprise Me button
+    if st.session_state.get('auto_generate', False):
+        st.session_state.auto_generate = False
+        if api_key_input and selected_model:
+            with st.spinner("💖 Crafting your surprise date night..."):
+                plan_output = generate_date_plan_with_gemini(
+                    api_key_input, selected_model,
+                    selected_theme, selected_activity_type,
+                    actual_budget_dollars_val,
+                    selected_prep_time,
+                    user_custom_input,
+                    time_budget_hours_direct,
+                    planning_style_prompt_line,
+                    location_prompt_line
+                )
+            st.session_state.generated_plan_content = plan_output
+            st.session_state.detailed_itinerary = None
             st.session_state.should_generate_itinerary = isinstance(plan_output, dict) and "title" in plan_output
 
 with right_column:
