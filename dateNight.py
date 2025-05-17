@@ -442,7 +442,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1>💖 Date Night AI! 🥂</h1>", unsafe_allow_html=True)
+st.markdown("<h1>💖 Date Night AI 🥂</h1>", unsafe_allow_html=True)
 
 # Button row at the top
 col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
