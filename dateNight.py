@@ -200,7 +200,7 @@ st.markdown("""
         h1 {font-size: 2.2rem !important; color: #FF69B4; text-align: center; margin-bottom: 1rem !important; font-weight: 700;}
         .right-column-content-wrapper {margin-top: 0 !important; padding-top: 0 !important;}
         .right-column-subheader {font-size: 1.5rem !important; font-weight: 600; color: #A9D5FF; margin-top: 0 !important; margin-bottom: 0.75rem !important; text-align: center;}
-        .left-column-section-title {font-size: 1.1rem !important; font-weight: 600; color: #BDC3C7; margin-top: 1rem !important; margin-bottom: 0.3rem !important; border-bottom: 1px solid #333A44; padding-bottom: 0.2rem;}
+        .left-column-section-title {font-size: 1.1rem !important; font-weight: 600; color: #BDC3C7; margin-top: 0.8rem !important; margin-bottom: 0.2rem !important; border-bottom: 1px solid #333A44; padding-bottom: 0.1rem;}
         div[data-testid="stSelectbox"] > label,
         div[data-testid="stSlider"] > label,
         div[data-testid="stTextArea"] > label,
@@ -260,15 +260,39 @@ st.markdown("""
             font-size: 0.8rem !important;
             color: #A0A7B3;
             margin-bottom: 0 !important;
+            padding: 0 !important;
         }
         div[data-testid="stCheckbox"] {
-            padding-top: 0.5rem !important;
+            padding-top: 0.8rem !important;
+            margin-bottom: -0.5rem !important;
         }
-        div[data-testid="stButton"] > button:has-text("🎲 Randomize Settings") {
+        /* Reduce spacing between controls */
+        .stSelectbox, .stSlider, .stRadio {
+            margin-bottom: 0.5rem !important;
+        }
+        /* Keep columns together on mobile */
+        @media (max-width: 768px) {
+            div[data-testid="stHorizontalBlock"] {
+                gap: 0.5rem !important;
+            }
+            div[data-testid="stColumn"] {
+                padding: 0 !important;
+            }
+        }
+        /* Force checkbox to stay inline */
+        .element-container:has(div[data-testid="stCheckbox"]) {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100%;
+            min-width: 50px;
+        }
+        /* Randomize button styling */
+        div[data-testid="stButton"]:has(button:contains("🎲")) > button {
             background-color: #9B59B6 !important;
             margin-bottom: 1rem !important;
         }
-        div[data-testid="stButton"] > button:has-text("🎲 Randomize Settings"):hover {
+        div[data-testid="stButton"]:has(button:contains("🎲")) > button:hover {
             background-color: #B47CC4 !important;
         }
     </style>
@@ -328,7 +352,7 @@ with left_column:
     st.markdown("<p class='left-column-section-title'>Your Preferences</p>", unsafe_allow_html=True)
     
     # Theme with lock
-    col1, col2 = st.columns([5, 1])
+    col1, col2 = st.columns([0.85, 0.15], gap="small")
     with col1:
         themes = ["Romantic ❤️", "Fun 🎉", "Chill 🧘", "Adventure 🚀", "Artsy 🎨", "Homebody 🏡", "Intellectual 🧠", "Foodie 🍲", "Mysterious 🕵️", "Nostalgic 🕰️"]
         theme_key = "theme_select"
@@ -340,7 +364,7 @@ with left_column:
         theme_locked = st.checkbox("🔒", key="theme_lock", help="Lock this setting from randomization")
     
     # Activity Type with lock
-    col1, col2 = st.columns([5, 1])
+    col1, col2 = st.columns([0.85, 0.15], gap="small")
     with col1:
         activity_types = ["At Home 🏠", "Out (Casual)🚶", "Out (Fancy)👗", "Outdoor Adventure 🌳", "Creative/DIY 🎨", "Learning Together 📚", "Volunteer/Give Back 🤝", "Relax & Unwind 🛀"]
         activity_key = "activity_select"
@@ -354,7 +378,7 @@ with left_column:
     st.markdown("<p class='left-column-section-title'>Practical Considerations</p>", unsafe_allow_html=True)
 
     # Budget Level: $1 to $200 with lock
-    col1, col2 = st.columns([5, 1])
+    col1, col2 = st.columns([0.85, 0.15], gap="small")
     with col1:
         budget_key = "budget_slider"
         if 'budget_value' not in st.session_state:
@@ -367,12 +391,11 @@ with left_column:
             key=budget_key
         )
         st.session_state.budget_value = actual_budget_dollars_val
-        st.caption(f"Selected: ${actual_budget_dollars_val}")
     with col2:
         budget_locked = st.checkbox("🔒", key="budget_lock", help="Lock this setting from randomization")
 
     # Preparation Time: Select from specific options with lock
-    col1, col2 = st.columns([5, 1])
+    col1, col2 = st.columns([0.85, 0.15], gap="small")
     with col1:
         prep_time_options = ["30 minutes", "2 hours", "8 hours", "1 day", "1 week", "1 month"]
         prep_key = "prep_slider"
@@ -386,12 +409,11 @@ with left_column:
             key=prep_key
         )
         st.session_state.prep_value = selected_prep_time
-        st.caption(f"Selected: {selected_prep_time}")
     with col2:
         prep_locked = st.checkbox("🔒", key="prep_lock", help="Lock this setting from randomization")
 
     # Max Activity Duration: 1 to 8 hours with lock
-    col1, col2 = st.columns([5, 1])
+    col1, col2 = st.columns([0.85, 0.15], gap="small")
     with col1:
         duration_key = "duration_slider"
         if 'duration_value' not in st.session_state:
@@ -404,7 +426,6 @@ with left_column:
             key=duration_key
         )
         st.session_state.duration_value = time_budget_hours_direct
-        st.caption(f"Selected: {time_budget_hours_direct} hours")
     with col2:
         duration_locked = st.checkbox("🔒", key="duration_lock", help="Lock this setting from randomization")
 
@@ -412,7 +433,7 @@ with left_column:
     st.markdown("<p class='left-column-section-title'>Planning Style & Specifics</p>", unsafe_allow_html=True)
     
     # Planning style with lock
-    col1, col2 = st.columns([5, 1])
+    col1, col2 = st.columns([0.85, 0.15], gap="small")
     with col1:
         planning_style_options = ["Planning Together", "Planning For Her"]
         planning_key = "planning_style_toggle"
