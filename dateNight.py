@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 import json
 import math # For rounding
+import random
 
 # --- Configuration & Setup ---
 load_dotenv()
@@ -255,10 +256,60 @@ st.markdown("""
         }
         .plan-description a {color: #4A90E2; text-decoration: none;}
         .plan-description a:hover {color: #5BA3F5; text-decoration: underline;}
+        div[data-testid="stCheckbox"] > label {
+            font-size: 0.8rem !important;
+            color: #A0A7B3;
+            margin-bottom: 0 !important;
+        }
+        div[data-testid="stCheckbox"] {
+            padding-top: 0.5rem !important;
+        }
+        div[data-testid="stButton"] > button:has-text("🎲 Randomize Settings") {
+            background-color: #9B59B6 !important;
+            margin-bottom: 1rem !important;
+        }
+        div[data-testid="stButton"] > button:has-text("🎲 Randomize Settings"):hover {
+            background-color: #B47CC4 !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
 st.markdown("<h1>💖 Date Night Planner AI! 🥂</h1>", unsafe_allow_html=True)
+
+# Randomize button centered at the top
+col1, col2, col3 = st.columns([1, 1, 1])
+with col2:
+    if st.button("🎲 Randomize Settings", type="secondary", use_container_width=True):
+        # Randomize theme if not locked
+        if not st.session_state.get('theme_lock', False):
+            themes = ["Romantic ❤️", "Fun 🎉", "Chill 🧘", "Adventure 🚀", "Artsy 🎨", "Homebody 🏡", "Intellectual 🧠", "Foodie 🍲", "Mysterious 🕵️", "Nostalgic 🕰️"]
+            st.session_state.theme_value = random.choice(themes)
+        
+        # Randomize activity type if not locked
+        if not st.session_state.get('activity_lock', False):
+            activity_types = ["At Home 🏠", "Out (Casual)🚶", "Out (Fancy)👗", "Outdoor Adventure 🌳", "Creative/DIY 🎨", "Learning Together 📚", "Volunteer/Give Back 🤝", "Relax & Unwind 🛀"]
+            st.session_state.activity_value = random.choice(activity_types)
+        
+        # Randomize budget if not locked
+        if not st.session_state.get('budget_lock', False):
+            st.session_state.budget_value = random.randint(1, 200)
+        
+        # Randomize prep time if not locked
+        if not st.session_state.get('prep_lock', False):
+            prep_time_options = ["30 minutes", "2 hours", "8 hours", "1 day", "1 week", "1 month"]
+            st.session_state.prep_value = random.choice(prep_time_options)
+        
+        # Randomize duration if not locked
+        if not st.session_state.get('duration_lock', False):
+            st.session_state.duration_value = random.randint(1, 8)
+        
+        # Randomize planning style if not locked
+        if not st.session_state.get('planning_lock', False):
+            planning_style_options = ["Planning Together", "Planning For Her"]
+            st.session_state.planning_value = random.choice(planning_style_options)
+        
+        # Trigger a rerun to show the new values
+        st.rerun()
 
 with st.sidebar:
     st.header("🔑 API & Model Config")
@@ -275,45 +326,104 @@ left_column, right_column = st.columns([0.42, 0.58])
 
 with left_column:
     st.markdown("<p class='left-column-section-title'>Your Preferences</p>", unsafe_allow_html=True)
-    themes = ["Romantic ❤️", "Fun 🎉", "Chill 🧘", "Adventure 🚀", "Artsy 🎨", "Homebody 🏡", "Intellectual 🧠", "Foodie 🍲", "Mysterious 🕵️", "Nostalgic 🕰️"]
-    selected_theme = st.selectbox("Theme", themes, help="Overall mood or vibe for the date?")
-    activity_types = ["At Home 🏠", "Out (Casual)🚶", "Out (Fancy)👗", "Outdoor Adventure 🌳", "Creative/DIY 🎨", "Learning Together 📚", "Volunteer/Give Back 🤝", "Relax & Unwind 🛀"]
-    selected_activity_type = st.selectbox("Activity Type", activity_types, help="General kind of activity?")
+    
+    # Theme with lock
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        themes = ["Romantic ❤️", "Fun 🎉", "Chill 🧘", "Adventure 🚀", "Artsy 🎨", "Homebody 🏡", "Intellectual 🧠", "Foodie 🍲", "Mysterious 🕵️", "Nostalgic 🕰️"]
+        theme_key = "theme_select"
+        if 'theme_value' not in st.session_state:
+            st.session_state.theme_value = themes[0]
+        selected_theme = st.selectbox("Theme", themes, key=theme_key, index=themes.index(st.session_state.theme_value), help="Overall mood or vibe for the date?")
+        st.session_state.theme_value = selected_theme
+    with col2:
+        theme_locked = st.checkbox("🔒", key="theme_lock", help="Lock this setting from randomization")
+    
+    # Activity Type with lock
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        activity_types = ["At Home 🏠", "Out (Casual)🚶", "Out (Fancy)👗", "Outdoor Adventure 🌳", "Creative/DIY 🎨", "Learning Together 📚", "Volunteer/Give Back 🤝", "Relax & Unwind 🛀"]
+        activity_key = "activity_select"
+        if 'activity_value' not in st.session_state:
+            st.session_state.activity_value = activity_types[0]
+        selected_activity_type = st.selectbox("Activity Type", activity_types, key=activity_key, index=activity_types.index(st.session_state.activity_value), help="General kind of activity?")
+        st.session_state.activity_value = selected_activity_type
+    with col2:
+        activity_locked = st.checkbox("🔒", key="activity_lock", help="Lock this setting from randomization")
 
     st.markdown("<p class='left-column-section-title'>Practical Considerations</p>", unsafe_allow_html=True)
 
-    # Budget Level: $1 to $200
-    actual_budget_dollars_val = st.slider(
-        "Budget (in dollars)",
-        min_value=1, max_value=200, value=50, step=1,
-        format="$%d",
-        help="Select your budget for the date ($1 to $200)."
-    )
-    st.caption(f"Selected: ${actual_budget_dollars_val}")
+    # Budget Level: $1 to $200 with lock
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        budget_key = "budget_slider"
+        if 'budget_value' not in st.session_state:
+            st.session_state.budget_value = 50
+        actual_budget_dollars_val = st.slider(
+            "Budget (in dollars)",
+            min_value=1, max_value=200, value=st.session_state.budget_value, step=1,
+            format="$%d",
+            help="Select your budget for the date ($1 to $200).",
+            key=budget_key
+        )
+        st.session_state.budget_value = actual_budget_dollars_val
+        st.caption(f"Selected: ${actual_budget_dollars_val}")
+    with col2:
+        budget_locked = st.checkbox("🔒", key="budget_lock", help="Lock this setting from randomization")
 
-    # Preparation Time: Select from specific options
-    prep_time_options = ["30 minutes", "2 hours", "8 hours", "1 day", "1 week", "1 month"]
-    selected_prep_time = st.select_slider(
-        "Preparation Time",
-        options=prep_time_options,
-        value="2 hours",
-        help="How much time do you have to prepare for this date?"
-    )
-    st.caption(f"Selected: {selected_prep_time}")
+    # Preparation Time: Select from specific options with lock
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        prep_time_options = ["30 minutes", "2 hours", "8 hours", "1 day", "1 week", "1 month"]
+        prep_key = "prep_slider"
+        if 'prep_value' not in st.session_state:
+            st.session_state.prep_value = "2 hours"
+        selected_prep_time = st.select_slider(
+            "Preparation Time",
+            options=prep_time_options,
+            value=st.session_state.prep_value,
+            help="How much time do you have to prepare for this date?",
+            key=prep_key
+        )
+        st.session_state.prep_value = selected_prep_time
+        st.caption(f"Selected: {selected_prep_time}")
+    with col2:
+        prep_locked = st.checkbox("🔒", key="prep_lock", help="Lock this setting from randomization")
 
-    # Max Activity Duration: 1 to 8 hours
-    time_budget_hours_direct = st.slider(
-        "Activity Duration (hours)",
-        min_value=1, max_value=8, value=3, step=1,
-        format="%d hours",
-        help="How long should the date activity last? (1-8 hours)"
-    )
-    st.caption(f"Selected: {time_budget_hours_direct} hours")
+    # Max Activity Duration: 1 to 8 hours with lock
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        duration_key = "duration_slider"
+        if 'duration_value' not in st.session_state:
+            st.session_state.duration_value = 3
+        time_budget_hours_direct = st.slider(
+            "Activity Duration (hours)",
+            min_value=1, max_value=8, value=st.session_state.duration_value, step=1,
+            format="%d hours",
+            help="How long should the date activity last? (1-8 hours)",
+            key=duration_key
+        )
+        st.session_state.duration_value = time_budget_hours_direct
+        st.caption(f"Selected: {time_budget_hours_direct} hours")
+    with col2:
+        duration_locked = st.checkbox("🔒", key="duration_lock", help="Lock this setting from randomization")
 
 
     st.markdown("<p class='left-column-section-title'>Planning Style & Specifics</p>", unsafe_allow_html=True)
-    planning_style_options = ["Planning Together", "Planning For Her"]
-    selected_planning_style = st.radio("How are you planning this date?", planning_style_options, index=0, horizontal=True, key="planning_style_toggle")
+    
+    # Planning style with lock
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        planning_style_options = ["Planning Together", "Planning For Her"]
+        planning_key = "planning_style_toggle"
+        if 'planning_value' not in st.session_state:
+            st.session_state.planning_value = planning_style_options[0]
+        selected_planning_style = st.radio("How are you planning this date?", planning_style_options, 
+                                         index=planning_style_options.index(st.session_state.planning_value), 
+                                         horizontal=True, key=planning_key)
+        st.session_state.planning_value = selected_planning_style
+    with col2:
+        planning_locked = st.checkbox("🔒", key="planning_lock", help="Lock this setting from randomization")
     
     planning_style_prompt_line = ""
     if selected_planning_style == "Planning Together":
