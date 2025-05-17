@@ -391,14 +391,6 @@ st.markdown("""
             margin-bottom: 1.5rem !important;
         }
         
-        /* Clear button styling */
-        div[data-testid="stButton"]:has(button:contains("🧹")) > button {
-            background-color: #E74C3C !important;
-            margin-bottom: 0 !important;
-        }
-        div[data-testid="stButton"]:has(button:contains("🧹")) > button:hover {
-            background-color: #F66 !important;
-        }
         
         /* Randomize button styling */
         div[data-testid="stButton"]:has(button:contains("🎲")) > button {
@@ -453,28 +445,8 @@ st.markdown("""
 st.markdown("<h1>💖 Date Night AI! 🥂</h1>", unsafe_allow_html=True)
 
 # Button row at the top
-col_btn1, col_btn2, col_btn3, col_btn4 = st.columns([1, 1, 1, 1])
+col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
 with col_btn1:
-    if st.button("🧹 Clear All Inputs", type="secondary", use_container_width=True):
-        # Reset all inputs to defaults
-        st.session_state.theme_value = "Romantic ❤️"
-        st.session_state.activity_value = "At Home 🏠"
-        st.session_state.budget_value = 50
-        st.session_state.prep_value = "2 hours"
-        st.session_state.duration_value = 3
-        st.session_state.planning_value = "Planning Together"
-        st.session_state.city_input = ""
-        st.session_state.include_location = False
-        st.session_state.user_custom_input_area_v2 = ""
-        
-        # Also clear any generated content
-        st.session_state.generated_plan_content = {"message": "Let's plan something amazing! Fill in your preferences and click Generate."}
-        st.session_state.detailed_itinerary = None
-        st.session_state.should_generate_itinerary = False
-        
-        st.rerun()
-
-with col_btn2:
     if st.button("🎲 Randomize Settings", type="secondary", use_container_width=True):
         # Randomize theme if not locked
         if not st.session_state.get('theme_lock', False):
@@ -506,7 +478,7 @@ with col_btn2:
         
         st.rerun()
 
-with col_btn3:
+with col_btn2:
     if st.button("🎁 Surprise Me!", type="secondary", use_container_width=True):
         # Randomly select an example plan
         surprise_plan = random.choice(example_date_plans)
