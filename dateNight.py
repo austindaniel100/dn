@@ -1163,41 +1163,6 @@ with right_column:
                     if emoji_description:
                         st.markdown(f"<div class='emoji-story-description'>{emoji_description}</div>", unsafe_allow_html=True)
                 
-                # Add "Make an Addition" section after the plan is generated
-                st.markdown("<hr style='margin: 2rem 0; opacity: 0.3;'>", unsafe_allow_html=True)
-                st.markdown("<p class='plan-section-title' style='text-align: center;'>🔧 Want to modify this plan?</p>", unsafe_allow_html=True)
-                
-                col_addition_text, col_addition_button = st.columns([3, 1])
-                with col_addition_text:
-                    addition_input = st.text_input(
-                        "Add a new element to your date", 
-                        placeholder="e.g., add alcohol, make it more budget-friendly, include live music, add dessert...",
-                        key="addition_input"
-                    )
-                with col_addition_button:
-                    if st.button("🔄 Make Addition", type="secondary", use_container_width=True):
-                        if addition_input.strip() and api_key_input and selected_model:
-                            with st.spinner("🔄 Updating your date plan..."):
-                                # Create a modified prompt that includes the original plan and the addition
-                                modified_plan_output = generate_date_plan_with_addition(
-                                    api_key_input, selected_model,
-                                    original_plan=plan_data,
-                                    addition=addition_input,
-                                    theme=selected_theme, 
-                                    activity_type=selected_activity_type,
-                                    budget_dollars=actual_budget_dollars_val,
-                                    prep_time_text=selected_prep_time,
-                                    time_budget_hours=time_budget_hours_direct,
-                                    planning_style_prompt_line=planning_style_prompt_line,
-                                    location_prompt_line=location_prompt_line
-                                )
-                            st.session_state.generated_plan_content = modified_plan_output
-                            st.session_state.detailed_itinerary = None  # Clear existing itinerary
-                            st.session_state.should_generate_itinerary = isinstance(modified_plan_output, dict) and "title" in modified_plan_output
-                            st.rerun()
-                        elif not addition_input.strip():
-                            st.error("Please enter what you'd like to add to the plan.")
-                
                 # Generate detailed itinerary if needed
                 if st.session_state.get('should_generate_itinerary', False) and not st.session_state.get('detailed_itinerary'):
                     with st.spinner("🔍 Creating detailed itinerary..."):
@@ -1213,8 +1178,81 @@ with right_column:
                         st.session_state.should_generate_itinerary = False
                         st.rerun()
                 
-                # Add a visual separator before detailed itinerary
+                # Add "Make an Addition" section BEFORE the detailed itinerary
+                if not st.session_state.get('detailed_itinerary') or st.session_state.get('should_generate_itinerary', False):
+                    # Show the addition section immediately after the plan if no detailed itinerary yet
+                    st.markdown("<hr style='margin: 2rem 0; opacity: 0.3;'>", unsafe_allow_html=True)
+                    st.markdown("<p class='plan-section-title' style='text-align: center;'>🔧 Want to modify this plan?</p>", unsafe_allow_html=True)
+                    
+                    col_addition_text, col_addition_button = st.columns([3, 1])
+                    with col_addition_text:
+                        addition_input = st.text_input(
+                            "Add a new element to your date", 
+                            placeholder="e.g., add alcohol, make it more budget-friendly, include live music, add dessert...",
+                            key="addition_input"
+                        )
+                    with col_addition_button:
+                        if st.button("🔄 Make Addition", type="secondary", use_container_width=True):
+                            if addition_input.strip() and api_key_input and selected_model:
+                                with st.spinner("🔄 Updating your date plan..."):
+                                    # Create a modified prompt that includes the original plan and the addition
+                                    modified_plan_output = generate_date_plan_with_addition(
+                                        api_key_input, selected_model,
+                                        original_plan=plan_data,
+                                        addition=addition_input,
+                                        theme=selected_theme, 
+                                        activity_type=selected_activity_type,
+                                        budget_dollars=actual_budget_dollars_val,
+                                        prep_time_text=selected_prep_time,
+                                        time_budget_hours=time_budget_hours_direct,
+                                        planning_style_prompt_line=planning_style_prompt_line,
+                                        location_prompt_line=location_prompt_line
+                                    )
+                                st.session_state.generated_plan_content = modified_plan_output
+                                st.session_state.detailed_itinerary = None  # Clear existing itinerary
+                                st.session_state.should_generate_itinerary = isinstance(modified_plan_output, dict) and "title" in modified_plan_output
+                                st.rerun()
+                            elif not addition_input.strip():
+                                st.error("Please enter what you'd like to add to the plan.")
+                
+                # Show detailed itinerary if available
                 if st.session_state.get('detailed_itinerary'):
+                    # If we have detailed itinerary, show addition section again before it
+                    st.markdown("<hr style='margin: 2rem 0; opacity: 0.3;'>", unsafe_allow_html=True)
+                    st.markdown("<p class='plan-section-title' style='text-align: center;'>🔧 Want to modify this plan?</p>", unsafe_allow_html=True)
+                    
+                    col_addition_text2, col_addition_button2 = st.columns([3, 1])
+                    with col_addition_text2:
+                        addition_input2 = st.text_input(
+                            "Add a new element to your date", 
+                            placeholder="e.g., add alcohol, make it more budget-friendly, include live music, add dessert...",
+                            key="addition_input2"
+                        )
+                    with col_addition_button2:
+                        if st.button("🔄 Make Addition", type="secondary", use_container_width=True, key="make_addition_btn2"):
+                            if addition_input2.strip() and api_key_input and selected_model:
+                                with st.spinner("🔄 Updating your date plan..."):
+                                    # Create a modified prompt that includes the original plan and the addition
+                                    modified_plan_output = generate_date_plan_with_addition(
+                                        api_key_input, selected_model,
+                                        original_plan=plan_data,
+                                        addition=addition_input2,
+                                        theme=selected_theme, 
+                                        activity_type=selected_activity_type,
+                                        budget_dollars=actual_budget_dollars_val,
+                                        prep_time_text=selected_prep_time,
+                                        time_budget_hours=time_budget_hours_direct,
+                                        planning_style_prompt_line=planning_style_prompt_line,
+                                        location_prompt_line=location_prompt_line
+                                    )
+                                st.session_state.generated_plan_content = modified_plan_output
+                                st.session_state.detailed_itinerary = None  # Clear existing itinerary
+                                st.session_state.should_generate_itinerary = isinstance(modified_plan_output, dict) and "title" in modified_plan_output
+                                st.rerun()
+                            elif not addition_input2.strip():
+                                st.error("Please enter what you'd like to add to the plan.")
+                    
+                    # Now show the detailed itinerary
                     st.markdown("<hr class='plan-separator'>", unsafe_allow_html=True)
                     st.markdown("<p class='plan-section-title' style='font-size: 1.4em; text-align: center; color: #FFD700; margin-bottom: 1.5rem;'>📍 Detailed Itinerary</p>", unsafe_allow_html=True)
                     
